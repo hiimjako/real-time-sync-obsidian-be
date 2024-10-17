@@ -80,6 +80,19 @@ func (s *screen) Content() string {
 	return content.String()
 }
 
+func (s *screen) DeleteChunk(idx, length int) {
+	s.mu.Lock()
+	if idx < 0 || idx+length > len(s.buffer) {
+		panic("deleting not existing chunk")
+	}
+
+	s.buffer = append(s.buffer[:idx], s.buffer[idx+length:]...)
+	s.moveCursor(-length)
+	s.mu.Unlock()
+
+	s.render()
+}
+
 func (s *screen) backspace() {
 	if s.cursorIdx == 0 {
 		return
