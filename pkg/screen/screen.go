@@ -1,6 +1,7 @@
 package screen
 
 import (
+	"strings"
 	"sync"
 
 	"github.com/gdamore/tcell/v2"
@@ -62,6 +63,21 @@ func (s *screen) Init() error {
 		}
 		s.mu.Unlock()
 	}
+}
+
+func (s *screen) Content() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	var content strings.Builder
+	content.Grow(len(s.buffer))
+
+	for i := 0; i < len(s.buffer); i++ {
+		r, _, _, _ := s.screen.GetContent(i, 0)
+		content.WriteRune(r)
+	}
+
+	return content.String()
 }
 
 func (s *screen) backspace() {

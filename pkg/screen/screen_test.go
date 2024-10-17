@@ -46,6 +46,7 @@ func TestScreen(t *testing.T) {
 	}
 
 	assert.Contains(t, str, "hello!|")
+	assert.Equal(t, s.Content(), "hello!")
 }
 
 func sendKey(t testing.TB, s tcell.Screen, key tcell.Key, r rune) {
