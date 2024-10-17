@@ -69,7 +69,7 @@ func (rts *realTimeSyncServer) publishHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	fileId := r.PathValue("id")
+	fileId := r.PathValue("fileId")
 	if fileId == "" {
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
