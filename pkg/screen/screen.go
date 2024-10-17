@@ -10,20 +10,20 @@ const (
 	cursorIcon = rune('|')
 )
 
-type screen struct {
+type Screen struct {
 	mu        sync.Mutex
 	buffer    []rune
 	screen    tcell.Screen
 	cursorIdx int
 }
 
-func NewScreen() (screen, error) {
+func NewScreen() (Screen, error) {
 	s, err := tcell.NewScreen()
 	if err != nil {
-		return screen{}, err
+		return Screen{}, err
 	}
 
-	return screen{
+	return Screen{
 		mu:        sync.Mutex{},
 		buffer:    []rune{},
 		cursorIdx: 0,
@@ -31,7 +31,7 @@ func NewScreen() (screen, error) {
 	}, nil
 }
 
-func (s *screen) Init() error {
+func (s *Screen) Init() error {
 	if err := s.screen.Init(); err != nil {
 		return err
 	}
@@ -64,14 +64,14 @@ func (s *screen) Init() error {
 	}
 }
 
-func (s *screen) Content() string {
+func (s *Screen) Content() string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	content := string(s.buffer)
 	return content
 }
 
-func (s *screen) DeleteChunk(idx, length int) {
+func (s *Screen) DeleteChunk(idx, length int) {
 	s.mu.Lock()
 	if idx < 0 || idx+length > len(s.buffer) {
 		panic("deleting not existing chunk")
@@ -84,7 +84,7 @@ func (s *screen) DeleteChunk(idx, length int) {
 	s.render()
 }
 
-func (s *screen) InsertChunk(idx int, chunk string) {
+func (s *Screen) InsertChunk(idx int, chunk string) {
 	s.mu.Lock()
 	if idx < 0 {
 		idx = 0
@@ -104,7 +104,7 @@ func (s *screen) InsertChunk(idx int, chunk string) {
 	s.render()
 }
 
-func (s *screen) backspace() {
+func (s *Screen) backspace() {
 	if s.cursorIdx == 0 {
 		return
 	}
@@ -117,7 +117,7 @@ func (s *screen) backspace() {
 	s.moveCursor(-1)
 }
 
-func (s *screen) moveCursor(pos int) {
+func (s *Screen) moveCursor(pos int) {
 	s.cursorIdx += pos
 	if s.cursorIdx > len(s.buffer) {
 		s.cursorIdx = len(s.buffer)
@@ -127,7 +127,7 @@ func (s *screen) moveCursor(pos int) {
 	}
 }
 
-func (s *screen) key(r rune) {
+func (s *Screen) key(r rune) {
 	s.buffer = append(s.buffer, r)
 	last := len(s.buffer) - 1
 	for i := last; i > 0 && i > s.cursorIdx; i-- {
@@ -137,7 +137,7 @@ func (s *screen) key(r rune) {
 	s.moveCursor(1)
 }
 
-func (s *screen) render() {
+func (s *Screen) render() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
