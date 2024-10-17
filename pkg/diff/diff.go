@@ -17,6 +17,7 @@ type DiffChunk struct {
 	Position int
 	Type     Operation
 	Text     string
+	Len      int
 }
 
 func ComputeDiff(newText, oldText string) []DiffChunk {
@@ -33,6 +34,7 @@ func ComputeDiff(newText, oldText string) []DiffChunk {
 				Type:     DiffAdd,
 				Position: idx,
 				Text:     diff.Text,
+				Len:      len(diff.Text),
 			})
 			idx += len(diff.Text) - 1
 		case diffmatchpatch.DiffDelete:
@@ -40,6 +42,7 @@ func ComputeDiff(newText, oldText string) []DiffChunk {
 				Type:     DiffRemove,
 				Position: idx,
 				Text:     diff.Text,
+				Len:      len(diff.Text),
 			})
 		case diffmatchpatch.DiffEqual:
 			idx += len(diff.Text) - 1
