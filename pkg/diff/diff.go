@@ -19,13 +19,13 @@ type DiffChunk struct {
 	Text     string
 }
 
-func ComputeDiff(serverText, clientText string) []DiffChunk {
+func ComputeDiff(newText, oldText string) []DiffChunk {
 	var diffChunks []DiffChunk
 
 	dmp := diffmatchpatch.New()
 
 	idx := 0
-	diffs := dmp.DiffMain(serverText, clientText, true)
+	diffs := dmp.DiffMain(newText, oldText, true)
 	for _, diff := range diffs {
 		switch diff.Type {
 		case diffmatchpatch.DiffInsert:
