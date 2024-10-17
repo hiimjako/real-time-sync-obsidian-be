@@ -4,7 +4,7 @@ run:
 
 .PHONY: cli
 cli:
-	@go run cmd/cli/*
+	@go run cmd/cli/* 2>cli.log
 
 .PHONY: test
 test:
