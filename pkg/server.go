@@ -2,6 +2,7 @@ package rtsync
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"log"
@@ -11,8 +12,27 @@ import (
 	"time"
 
 	"github.com/coder/websocket"
+	"github.com/hiimjako/real-time-sync-obsidian-be/pkg/diff"
 	"golang.org/x/time/rate"
 )
+
+type InsertChunk struct {
+	Position int    `json:"pos"`
+	Text     string `json:"text"`
+}
+
+func ApplyInsertChunk(text string, diff InsertChunk) string {
+	return text[:diff.Position-1] + diff.Text + text[diff.Position+len(diff.Text):]
+}
+
+type DeleteChunk struct {
+	Position int `json:"pos"`
+	Len      int `json:"len"`
+}
+
+func ApplyDeleteChunk(text string, diff DeleteChunk) string {
+	return text[:diff.Position-1] + text[diff.Position+diff.Len:]
+}
 
 type realTimeSyncServer struct {
 	subscriberMessageBuffer int
@@ -20,6 +40,7 @@ type realTimeSyncServer struct {
 	serveMux                http.ServeMux
 	subscribersMu           sync.Mutex
 	subscribers             map[*subscriber]struct{}
+	files                   map[string]string
 }
 
 func New() *realTimeSyncServer {
@@ -27,10 +48,11 @@ func New() *realTimeSyncServer {
 		subscriberMessageBuffer: 8,
 		publishLimiter:          rate.NewLimiter(rate.Every(100*time.Millisecond), 8),
 		subscribers:             make(map[*subscriber]struct{}),
+		files:                   make(map[string]string),
 	}
 
 	rts.serveMux.HandleFunc("/subscribe", rts.subscribeHandler)
-	rts.serveMux.HandleFunc("/publish", rts.publishHandler)
+	rts.serveMux.HandleFunc("/publish/{fileId}", rts.publishHandler)
 
 	return rts
 }
@@ -59,23 +81,81 @@ func (rts *realTimeSyncServer) subscribeHandler(w http.ResponseWriter, r *http.R
 	}
 }
 
-// publishHandler reads the request body with a limit of 8192 bytes and then publishes
-// the received message.
 func (rts *realTimeSyncServer) publishHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
-		return
-	}
-	body := http.MaxBytesReader(w, r.Body, 8192)
-	msg, err := io.ReadAll(body)
-	if err != nil {
-		http.Error(w, http.StatusText(http.StatusRequestEntityTooLarge), http.StatusRequestEntityTooLarge)
+	fileId := r.PathValue("id")
+	if fileId == "" {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
 
-	rts.publish(msg)
+	fileText, ok := rts.files[fileId]
 
-	w.WriteHeader(http.StatusAccepted)
+	defer r.Body.Close()
+
+	if r.Method == http.MethodPost {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, http.StatusText(http.StatusUnprocessableEntity), http.StatusUnprocessableEntity)
+			return
+		}
+
+		var data InsertChunk
+		err = json.Unmarshal(body, &data)
+		if err != nil {
+			http.Error(w, http.StatusText(http.StatusUnprocessableEntity), http.StatusUnprocessableEntity)
+			return
+		}
+
+		localCopy := ApplyInsertChunk(fileText, data)
+		diffs := diff.ComputeDiff(fileText, localCopy)
+
+		diffsByte, err := json.Marshal(diffs)
+		if err != nil {
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		rts.publish(diffsByte)
+
+		w.WriteHeader(http.StatusAccepted)
+		return
+	}
+
+	if r.Method == http.MethodDelete {
+		if !ok {
+			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+			return
+		}
+
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, http.StatusText(http.StatusUnprocessableEntity), http.StatusUnprocessableEntity)
+			return
+		}
+
+		var data DeleteChunk
+		err = json.Unmarshal(body, &data)
+		if err != nil {
+			http.Error(w, http.StatusText(http.StatusUnprocessableEntity), http.StatusUnprocessableEntity)
+			return
+		}
+
+		localCopy := ApplyDeleteChunk(fileText, data)
+		diffs := diff.ComputeDiff(fileText, localCopy)
+
+		diffsByte, err := json.Marshal(diffs)
+		if err != nil {
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		rts.publish(diffsByte)
+
+		w.WriteHeader(http.StatusAccepted)
+		return
+	}
+
+	http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 }
 
 func (rts *realTimeSyncServer) subscribe(w http.ResponseWriter, r *http.Request) error {
