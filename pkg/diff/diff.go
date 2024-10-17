@@ -53,8 +53,14 @@ func ComputeDiff(oldText, newText string) []DiffChunk {
 func ApplyDiff(text string, diff DiffChunk) string {
 	switch diff.Type {
 	case DiffAdd:
+		if text == "" {
+			return diff.Text
+		}
 		return text[:diff.Position] + diff.Text + text[diff.Position:]
 	case DiffRemove:
+		if text == "" {
+			return ""
+		}
 		return text[:diff.Position] + text[diff.Position+diff.Len:]
 	}
 	panic("not reachable")

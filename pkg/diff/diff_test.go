@@ -42,6 +42,9 @@ func TestApplyDiff(t *testing.T) {
 		}
 		updatedText := ApplyDiff(text, diffAdd)
 		assert.Equal(t, "hello world!", updatedText)
+
+		fromEmptyString := ApplyDiff("", diffAdd)
+		assert.Equal(t, " world", fromEmptyString)
 	})
 
 	t.Run("diff remove", func(t *testing.T) {
@@ -54,5 +57,8 @@ func TestApplyDiff(t *testing.T) {
 		}
 		updatedText := ApplyDiff(text, diffRemove)
 		assert.Equal(t, "hello!", updatedText)
+
+		fromEmptyString := ApplyDiff("", diffRemove)
+		assert.Equal(t, "", fromEmptyString)
 	})
 }
