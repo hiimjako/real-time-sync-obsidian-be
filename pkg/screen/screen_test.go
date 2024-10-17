@@ -37,12 +37,11 @@ func TestScreen(t *testing.T) {
 	sendKey(t, s.screen, tcell.KeyRune, '!')
 
 	assert.Contains(t, getDisplayedContent(simulationScreen), "hello!|")
-	assert.Equal(t, s.Content(), "hello!")
+	assert.Equal(t, "hello!", s.Content())
 
 	s.DeleteChunk(2, 2)
-
 	assert.Contains(t, getDisplayedContent(simulationScreen), "heo!|")
-	assert.Equal(t, s.Content(), "heo!")
+	assert.Equal(t, "heo!", s.Content())
 }
 
 func sendKey(t testing.TB, s tcell.Screen, key tcell.Key, r rune) {

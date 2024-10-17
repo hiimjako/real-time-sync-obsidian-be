@@ -68,16 +68,8 @@ func (s *screen) Init() error {
 func (s *screen) Content() string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-
-	var content strings.Builder
-	content.Grow(len(s.buffer))
-
-	for i := 0; i < len(s.buffer); i++ {
-		r, _, _, _ := s.screen.GetContent(i, 0)
-		content.WriteRune(r)
-	}
-
-	return content.String()
+	content := string(s.buffer)
+	return content
 }
 
 func (s *screen) DeleteChunk(idx, length int) {
