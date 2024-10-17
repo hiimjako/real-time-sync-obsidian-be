@@ -1,7 +1,6 @@
 package screen
 
 import (
-	"strings"
 	"sync"
 
 	"github.com/gdamore/tcell/v2"
@@ -80,6 +79,26 @@ func (s *screen) DeleteChunk(idx, length int) {
 
 	s.buffer = append(s.buffer[:idx], s.buffer[idx+length:]...)
 	s.moveCursor(-length)
+	s.mu.Unlock()
+
+	s.render()
+}
+
+func (s *screen) InsertChunk(idx int, chunk string) {
+	s.mu.Lock()
+	if idx < 0 {
+		idx = 0
+	}
+
+	newBuffer := make([]rune, 0, len(s.buffer)+len(chunk))
+	newBuffer = append(newBuffer, s.buffer[:idx]...)
+	newBuffer = append(newBuffer, []rune(chunk)...)
+	newBuffer = append(newBuffer, s.buffer[idx:]...)
+	s.buffer = newBuffer
+
+	if idx <= s.cursorIdx {
+		s.moveCursor(len(chunk))
+	}
 	s.mu.Unlock()
 
 	s.render()
