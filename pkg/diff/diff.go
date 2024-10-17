@@ -1,8 +1,6 @@
 package diff
 
 import (
-	"fmt"
-
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
@@ -20,13 +18,13 @@ type DiffChunk struct {
 	Len      int
 }
 
-func ComputeDiff(newText, oldText string) []DiffChunk {
+func ComputeDiff(oldText, newText string) []DiffChunk {
 	var diffChunks []DiffChunk
 
 	dmp := diffmatchpatch.New()
 
-	idx := 0
-	diffs := dmp.DiffMain(newText, oldText, true)
+	idx := 1
+	diffs := dmp.DiffMain(oldText, newText, true)
 	for _, diff := range diffs {
 		switch diff.Type {
 		case diffmatchpatch.DiffInsert:
@@ -49,19 +47,15 @@ func ComputeDiff(newText, oldText string) []DiffChunk {
 		}
 	}
 
-	fmt.Println(diffs)
-	fmt.Println(dmp.DiffPrettyText(diffs))
-
 	return diffChunks
 }
 
 func ApplyDiff(text string, diff DiffChunk) string {
 	switch diff.Type {
 	case DiffAdd:
-		return text[:diff.Position-1] + diff.Text + text[diff.Position+diff.Len:]
+		return text[:diff.Position] + diff.Text + text[diff.Position:]
 	case DiffRemove:
-		return text[:diff.Position-1] + text[diff.Position+diff.Len:]
+		return text[:diff.Position] + text[diff.Position+diff.Len:]
 	}
 	panic("not reachable")
 }
-
