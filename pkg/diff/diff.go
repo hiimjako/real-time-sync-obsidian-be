@@ -55,3 +55,13 @@ func ComputeDiff(newText, oldText string) []DiffChunk {
 	return diffChunks
 }
 
+func ApplyDiff(text string, diff DiffChunk) string {
+	switch diff.Type {
+	case DiffAdd:
+		return text[:diff.Position-1] + diff.Text + text[diff.Position+diff.Len:]
+	case DiffRemove:
+		return text[:diff.Position-1] + text[diff.Position+diff.Len:]
+	}
+	panic("not reachable")
+}
+

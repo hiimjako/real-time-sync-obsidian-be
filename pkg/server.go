@@ -16,24 +16,6 @@ import (
 	"golang.org/x/time/rate"
 )
 
-type InsertChunk struct {
-	Position int    `json:"pos"`
-	Text     string `json:"text"`
-}
-
-func ApplyInsertChunk(text string, diff InsertChunk) string {
-	return text[:diff.Position-1] + diff.Text + text[diff.Position+len(diff.Text):]
-}
-
-type DeleteChunk struct {
-	Position int `json:"pos"`
-	Len      int `json:"len"`
-}
-
-func ApplyDeleteChunk(text string, diff DeleteChunk) string {
-	return text[:diff.Position-1] + text[diff.Position+diff.Len:]
-}
-
 type realTimeSyncServer struct {
 	subscriberMessageBuffer int
 	publishLimiter          *rate.Limiter
@@ -82,80 +64,47 @@ func (rts *realTimeSyncServer) subscribeHandler(w http.ResponseWriter, r *http.R
 }
 
 func (rts *realTimeSyncServer) publishHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+		return
+	}
+
 	fileId := r.PathValue("id")
 	if fileId == "" {
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
 
-	fileText, ok := rts.files[fileId]
-
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusUnprocessableEntity), http.StatusUnprocessableEntity)
+		return
+	}
 	defer r.Body.Close()
 
-	if r.Method == http.MethodPost {
-		body, err := io.ReadAll(r.Body)
-		if err != nil {
-			http.Error(w, http.StatusText(http.StatusUnprocessableEntity), http.StatusUnprocessableEntity)
-			return
-		}
-
-		var data InsertChunk
-		err = json.Unmarshal(body, &data)
-		if err != nil {
-			http.Error(w, http.StatusText(http.StatusUnprocessableEntity), http.StatusUnprocessableEntity)
-			return
-		}
-
-		localCopy := ApplyInsertChunk(fileText, data)
-		diffs := diff.ComputeDiff(fileText, localCopy)
-
-		diffsByte, err := json.Marshal(diffs)
-		if err != nil {
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-			return
-		}
-
-		rts.publish(diffsByte)
-
-		w.WriteHeader(http.StatusAccepted)
+	var data []diff.DiffChunk
+	err = json.Unmarshal(body, &data)
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusUnprocessableEntity), http.StatusUnprocessableEntity)
 		return
 	}
 
-	if r.Method == http.MethodDelete {
-		if !ok {
-			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
-			return
-		}
+	localCopy := rts.files[fileId]
+	for _, d := range data {
+		localCopy = diff.ApplyDiff(localCopy, d)
+	}
+	diffs := diff.ComputeDiff(rts.files[fileId], localCopy)
+	rts.files[fileId] = localCopy
 
-		body, err := io.ReadAll(r.Body)
-		if err != nil {
-			http.Error(w, http.StatusText(http.StatusUnprocessableEntity), http.StatusUnprocessableEntity)
-			return
-		}
-
-		var data DeleteChunk
-		err = json.Unmarshal(body, &data)
-		if err != nil {
-			http.Error(w, http.StatusText(http.StatusUnprocessableEntity), http.StatusUnprocessableEntity)
-			return
-		}
-
-		localCopy := ApplyDeleteChunk(fileText, data)
-		diffs := diff.ComputeDiff(fileText, localCopy)
-
-		diffsByte, err := json.Marshal(diffs)
-		if err != nil {
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-			return
-		}
-
-		rts.publish(diffsByte)
-
-		w.WriteHeader(http.StatusAccepted)
+	diffsByte, err := json.Marshal(diffs)
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
-	http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+	rts.publish(diffsByte)
+
+	w.WriteHeader(http.StatusAccepted)
 }
 
 func (rts *realTimeSyncServer) subscribe(w http.ResponseWriter, r *http.Request) error {
