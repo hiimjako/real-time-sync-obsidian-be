@@ -17,11 +17,14 @@ import (
 )
 
 var (
-	serverURL = flag.String("url", "127.0.0.1:8080", "server URL")
+	client = &http.Client{}
+
+	serverURL = flag.String("url", "http://127.0.0.1:8080", "server URL")
 	fileId    = flag.String("file", uuid.NewString(), "file to open")
 )
 
 func main() {
+	log.SetOutput(os.Stderr)
 	flag.Parse()
 
 	screen, err := screen.NewScreen()
@@ -53,7 +56,7 @@ func pollText(s *screen.Screen) {
 			<-time.After(10 * time.Millisecond)
 
 			content := s.Content()
-			d := diff.ComputeDiff(content, lastContent)
+			d := diff.ComputeDiff(lastContent, content)
 
 			if len(d) == 0 {
 				continue
@@ -83,7 +86,6 @@ func sendChunk(data []diff.DiffChunk) error {
 
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
 		return err
@@ -91,7 +93,7 @@ func sendChunk(data []diff.DiffChunk) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("error in request: %v", resp)
+		return fmt.Errorf("error in request: %v", resp.Status)
 	}
 
 	return nil
