@@ -39,7 +39,7 @@ func (s *Screen) Init() error {
 	defer s.screen.Fini()
 
 	for {
-		s.render()
+		s.Render()
 
 		event := s.screen.PollEvent()
 		s.mu.Lock()
@@ -95,7 +95,7 @@ func (s *Screen) DeleteChunk(idx, length int) {
 	s.moveCursor(-length)
 	s.mu.Unlock()
 
-	s.render()
+	s.Render()
 }
 
 func (s *Screen) InsertChunk(idx int, chunk string) {
@@ -115,7 +115,7 @@ func (s *Screen) InsertChunk(idx int, chunk string) {
 	}
 	s.mu.Unlock()
 
-	s.render()
+	s.Render()
 }
 
 func (s *Screen) backspace() {
@@ -170,7 +170,7 @@ func (s *Screen) contentWithCursor() string {
 	return string(content)
 }
 
-func (s *Screen) render() {
+func (s *Screen) Render() {
 	content := s.contentWithCursor()
 	s.mu.Lock()
 	defer s.mu.Unlock()

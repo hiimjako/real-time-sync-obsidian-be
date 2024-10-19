@@ -1,26 +1,23 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
+	"context"
 	"flag"
-	"fmt"
 	"log"
-	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/coder/websocket"
+	"github.com/coder/websocket/wsjson"
+	rtsync "github.com/hiimjako/real-time-sync-obsidian-be/pkg"
 	"github.com/hiimjako/real-time-sync-obsidian-be/pkg/diff"
 	"github.com/hiimjako/real-time-sync-obsidian-be/pkg/screen"
 )
 
 var (
-	client = &http.Client{}
-
-	serverURL = flag.String("url", "http://127.0.0.1:8080", "server URL")
-	fileId    = flag.String("file", uuid.NewString(), "file to open")
+	serverURL = flag.String("url", "127.0.0.1:8080", "server URL")
 )
 
 func main() {
@@ -50,51 +47,57 @@ func main() {
 }
 
 func pollText(s *screen.Screen) {
+	var mu sync.Mutex
+
+	ctx := context.Background()
+	url := "ws://" + *serverURL + rtsync.PathWebSocket
+	ws, _, err := websocket.Dial(ctx, url, nil)
+	logOnError(err)
+
 	lastContent := ""
 	go func() {
+		// listen for changes in ws
 		for {
-			<-time.After(10 * time.Millisecond)
+			var msg rtsync.DiffChunkMessage
+			err = wsjson.Read(ctx, ws, &msg)
+			logOnError(err)
 
+			mu.Lock()
+			lastContent = s.ApplyDiff(msg.Chunks)
+			s.Render()
+			mu.Unlock()
+		}
+	}()
+
+	go func() {
+		// send local changes to server
+		for {
+			<-time.After(1 * time.Millisecond)
+
+			mu.Lock()
 			content := s.Content()
 			d := diff.ComputeDiff(lastContent, content)
 
+			log.Println(d)
 			if len(d) == 0 {
+				mu.Unlock()
 				continue
 			}
 
-			err := sendChunk(d)
-			if err != nil {
-				log.Println(err)
-			}
+			err = wsjson.Write(ctx, ws, rtsync.DiffChunkMessage{
+				FileId: "cli",
+				Chunks: d,
+			})
+			logOnError(err)
 
 			lastContent = content
+			mu.Unlock()
 		}
 	}()
 }
 
-func sendChunk(data []diff.DiffChunk) error {
-	jsonData, err := json.Marshal(data)
+func logOnError(err error) {
 	if err != nil {
-		return err
+		log.Println(err)
 	}
-
-	url := *serverURL + "/publish/" + *fileId
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
-	if err != nil {
-		return err
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("error in request: %v", resp.Status)
-	}
-
-	return nil
 }
