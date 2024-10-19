@@ -148,7 +148,7 @@ func (rts *realTimeSyncServer) subscribe(w http.ResponseWriter, r *http.Request)
 			diffs := diff.ComputeDiff(rts.files[fileId], localCopy)
 			rts.files[fileId] = localCopy
 
-			rts.publish(InternalMessage{
+			rts.broadcastPublish(InternalMessage{
 				SenderId: clientId,
 				Message: DiffChunkMessage{
 					FileId: fileId,
@@ -175,10 +175,10 @@ func (rts *realTimeSyncServer) subscribe(w http.ResponseWriter, r *http.Request)
 	}
 }
 
-// publish publishes the msg to all subscribers.
+// broadcastPublish publishes the msg to all subscribers.
 // It never blocks and so messages to slow subscribers
 // are dropped.
-func (rts *realTimeSyncServer) publish(msg InternalMessage) {
+func (rts *realTimeSyncServer) broadcastPublish(msg InternalMessage) {
 	rts.subscribersMu.Lock()
 	defer rts.subscribersMu.Unlock()
 
