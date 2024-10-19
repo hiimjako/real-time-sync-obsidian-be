@@ -77,9 +77,11 @@ func (rts *realTimeSyncServer) subscribe(w http.ResponseWriter, r *http.Request)
 	rts.addSubscriber(s)
 	defer rts.deleteSubscriber(s)
 
+	ctx, cancel := context.WithCancel(r.Context())
 	go func() {
 		for {
 			if !s.IsOpen() {
+				cancel()
 				return
 			}
 
@@ -103,8 +105,8 @@ func (rts *realTimeSyncServer) subscribe(w http.ResponseWriter, r *http.Request)
 			if err != nil {
 				log.Println("error writing message to client", err)
 			}
-		case <-r.Context().Done():
-			return r.Context().Err()
+		case <-ctx.Done():
+			return nil
 		}
 	}
 }
