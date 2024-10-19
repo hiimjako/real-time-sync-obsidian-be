@@ -137,21 +137,33 @@ func (s *Screen) key(r rune) {
 	s.moveCursor(1)
 }
 
+func (s *Screen) contentWithCursor() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	content := make([]rune, 0, len(s.buffer)+1)
+
+	for i, r := range s.buffer {
+		if i == s.cursorIdx {
+			content = append(content, cursorIcon)
+		}
+		content = append(content, r)
+	}
+
+	if s.cursorIdx == len(s.buffer) {
+		content = append(content, cursorIcon)
+	}
+
+	return string(content)
+}
+
 func (s *Screen) render() {
+	content := s.contentWithCursor()
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	s.screen.Clear()
-	cursorOffset := 0
-	for i, r := range s.buffer {
-		if i == s.cursorIdx {
-			s.screen.SetContent(i, 0, cursorIcon, nil, tcell.StyleDefault)
-			cursorOffset = 1
-		}
-		s.screen.SetContent(i+cursorOffset, 0, r, nil, tcell.StyleDefault)
-	}
-	if cursorOffset == 0 {
-		s.screen.SetContent(len(s.buffer), 0, cursorIcon, nil, tcell.StyleDefault)
+	for i, r := range content {
+		s.screen.SetContent(i, 0, r, nil, tcell.StyleDefault)
 	}
 	s.screen.Show()
 }
