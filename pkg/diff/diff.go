@@ -14,9 +14,9 @@ const (
 type DiffChunk struct {
 	Type Operation
 	// Position indicates the position immediately after the last valid character, where the diff should start being applied.
-	Position int
+	Position int64
 	Text     string
-	Len      int
+	Len      int64
 }
 
 func ComputeDiff(oldText, newText string) []DiffChunk {
@@ -24,27 +24,28 @@ func ComputeDiff(oldText, newText string) []DiffChunk {
 
 	dmp := diffmatchpatch.New()
 
-	idx := 0
+	var idx int64
 	diffs := dmp.DiffMain(oldText, newText, true)
 	for _, diff := range diffs {
+		l := int64(len(diff.Text))
 		switch diff.Type {
 		case diffmatchpatch.DiffInsert:
 			diffChunks = append(diffChunks, DiffChunk{
 				Type:     DiffAdd,
 				Position: idx,
 				Text:     diff.Text,
-				Len:      len(diff.Text),
+				Len:      l,
 			})
-			idx += len(diff.Text) - 1
+			idx += int64(l) - 1
 		case diffmatchpatch.DiffDelete:
 			diffChunks = append(diffChunks, DiffChunk{
 				Type:     DiffRemove,
 				Position: idx,
 				Text:     diff.Text,
-				Len:      len(diff.Text),
+				Len:      l,
 			})
 		case diffmatchpatch.DiffEqual:
-			idx += len(diff.Text) - 1
+			idx += l - 1
 		}
 	}
 
