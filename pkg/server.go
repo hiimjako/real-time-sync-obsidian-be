@@ -165,7 +165,7 @@ func (rts *realTimeSyncServer) subscribe(w http.ResponseWriter, r *http.Request)
 				continue
 			}
 
-			err := writeTimeout(r.Context(), time.Second*5, c, msg.Message)
+			err := writeTimeout(r.Context(), time.Second*1, c, msg.Message)
 			if err != nil {
 				log.Println("error writing message to client", err)
 			}
