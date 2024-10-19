@@ -30,7 +30,7 @@ func TestIntegration(t *testing.T) {
 		FileId: "file-1",
 		Chunks: []diff.DiffChunk{
 			{
-				Position: 1,
+				Position: 0,
 				Type:     diff.DiffAdd,
 				Text:     "Hello!",
 				Len:      6,

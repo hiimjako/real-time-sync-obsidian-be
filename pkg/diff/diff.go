@@ -23,7 +23,7 @@ func ComputeDiff(oldText, newText string) []DiffChunk {
 
 	dmp := diffmatchpatch.New()
 
-	idx := 1
+	idx := 0
 	diffs := dmp.DiffMain(oldText, newText, true)
 	for _, diff := range diffs {
 		switch diff.Type {
@@ -60,6 +60,9 @@ func ApplyDiff(text string, diff DiffChunk) string {
 	case DiffRemove:
 		if text == "" {
 			return ""
+		}
+		if diff.Position+diff.Len > len(text) {
+			return text[:diff.Position]
 		}
 		return text[:diff.Position] + text[diff.Position+diff.Len:]
 	}

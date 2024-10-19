@@ -7,28 +7,58 @@ import (
 )
 
 func TestComputeDiff(t *testing.T) {
-	text := "hello world!"
-	newText := "hello!"
-
-	diff := ComputeDiff(text, newText)
-	assert.Equal(t, []DiffChunk{
+	tests := []struct {
+		name     string
+		text     string
+		update   string
+		expected []DiffChunk
+	}{
 		{
-			Position: 5,
-			Type:     DiffRemove,
-			Text:     " world",
-			Len:      6,
+			name:   "compute remove chunk",
+			text:   "hello world!",
+			update: "hello!",
+			expected: []DiffChunk{
+				{
+					Position: 4,
+					Type:     DiffRemove,
+					Text:     " world",
+					Len:      6,
+				},
+			},
 		},
-	}, diff)
-
-	diff = ComputeDiff(newText, text)
-	assert.Equal(t, []DiffChunk{
 		{
-			Position: 5,
-			Type:     DiffAdd,
-			Text:     " world",
-			Len:      6,
+			name:   "compute add chunk",
+			text:   "hello!",
+			update: "hello world!",
+			expected: []DiffChunk{
+				{
+					Position: 4,
+					Type:     DiffAdd,
+					Text:     " world",
+					Len:      6,
+				},
+			},
 		},
-	}, diff)
+		{
+			name:   "compute remove chunk 2",
+			text:   " ",
+			update: "",
+			expected: []DiffChunk{
+				{
+					Position: 0,
+					Type:     DiffRemove,
+					Text:     " ",
+					Len:      1,
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, ComputeDiff(tt.text, tt.update))
+		})
+	}
 }
 
 func TestApplyDiff(t *testing.T) {
@@ -52,7 +82,7 @@ func TestApplyDiff(t *testing.T) {
 		{
 			name: "add a chunk from empty string",
 			diff: DiffChunk{
-				Position: 5,
+				Position: 4,
 				Type:     DiffAdd,
 				Text:     " world",
 				Len:      6,
@@ -63,7 +93,7 @@ func TestApplyDiff(t *testing.T) {
 		{
 			name: "remove a chunk",
 			diff: DiffChunk{
-				Position: 5,
+				Position: 4,
 				Type:     DiffRemove,
 				Text:     " world",
 				Len:      6,
@@ -74,12 +104,23 @@ func TestApplyDiff(t *testing.T) {
 		{
 			name: "remove a chunk from empty string",
 			diff: DiffChunk{
-				Position: 5,
+				Position: 4,
 				Type:     DiffRemove,
 				Text:     " world",
 				Len:      6,
 			},
 			text:     "",
+			expected: "",
+		},
+		{
+			name: "remove a chunk from single word",
+			diff: DiffChunk{
+				Position: 0,
+				Type:     DiffRemove,
+				Text:     "a",
+				Len:      1,
+			},
+			text:     "a",
 			expected: "",
 		},
 	}
