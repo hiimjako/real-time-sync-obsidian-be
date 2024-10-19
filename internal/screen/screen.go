@@ -56,6 +56,10 @@ func (s *Screen) Init() error {
 				s.moveCursor(-1)
 			} else if ev.Key() == tcell.KeyRight {
 				s.moveCursor(1)
+			} else if ev.Key() == tcell.KeyUp {
+				s.moveCursorUp()
+			} else if ev.Key() == tcell.KeyDown {
+				s.moveCursorDown()
 			} else if ev.Key() == tcell.KeyEnter {
 				s.key(newLine)
 			} else if ev.Key() == tcell.KeyRune {
@@ -142,6 +146,26 @@ func (s *Screen) moveCursor(pos int) {
 	if s.cursorIdx < 0 {
 		s.cursorIdx = 0
 	}
+}
+
+func (s *Screen) moveCursorUp() {
+	i := s.cursorIdx - 1
+	for i > 0 && s.buffer[i] != newLine {
+		i--
+	}
+
+	if i != 0 {
+		s.moveCursor(i - s.cursorIdx)
+	}
+}
+
+func (s *Screen) moveCursorDown() {
+	i := s.cursorIdx + 1
+	for i < len(s.buffer) && s.buffer[i] != newLine {
+		i++
+	}
+
+	s.moveCursor(i - s.cursorIdx)
 }
 
 func (s *Screen) key(r rune) {
