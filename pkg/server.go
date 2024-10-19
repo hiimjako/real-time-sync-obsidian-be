@@ -80,7 +80,6 @@ func (rts *realTimeSyncServer) subscribe(w http.ResponseWriter, r *http.Request)
 	go func() {
 		for {
 			if !s.IsOpen() {
-				log.Printf("client %s disconnected\n", s.clientId)
 				return
 			}
 

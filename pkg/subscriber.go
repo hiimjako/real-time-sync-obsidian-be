@@ -18,9 +18,10 @@ type subscriber struct {
 	r    *http.Request
 	ctx  context.Context
 
-	clientId  string
-	msgs      chan InternalMessage
-	closeSlow func()
+	isConnected bool
+	clientId    string
+	msgs        chan InternalMessage
+	closeSlow   func()
 }
 
 func NewSubscriber(w http.ResponseWriter, r *http.Request) (*subscriber, error) {
@@ -31,12 +32,13 @@ func NewSubscriber(w http.ResponseWriter, r *http.Request) (*subscriber, error) 
 
 	const subscriberMessageBuffer = 8
 	s := &subscriber{
-		conn:     c,
-		w:        w,
-		r:        r,
-		ctx:      r.Context(),
-		msgs:     make(chan InternalMessage, subscriberMessageBuffer),
-		clientId: uuid.New().String(),
+		conn:        c,
+		w:           w,
+		r:           r,
+		ctx:         r.Context(),
+		isConnected: true,
+		msgs:        make(chan InternalMessage, subscriberMessageBuffer),
+		clientId:    uuid.New().String(),
 		closeSlow: func() {
 			if c != nil {
 				c.Close(websocket.StatusPolicyViolation, "connection too slow to keep up with messages")
@@ -48,10 +50,11 @@ func NewSubscriber(w http.ResponseWriter, r *http.Request) (*subscriber, error) 
 }
 
 func (s *subscriber) IsOpen() bool {
-	return s.ctx.Err() == nil
+	return s.isConnected && s.ctx.Err() == nil
 }
 
 func (s *subscriber) Close() error {
+	s.isConnected = false
 	return s.conn.CloseNow()
 }
 
@@ -61,6 +64,7 @@ func (s *subscriber) ReadMessage() (DiffChunkMessage, error) {
 	err := wsjson.Read(s.ctx, s.conn, &data)
 	if err != nil {
 		if websocket.CloseStatus(err) != -1 || strings.Contains(err.Error(), "EOF") {
+			s.Close()
 			return data, fmt.Errorf("client %s disconnected", s.clientId)
 		}
 
