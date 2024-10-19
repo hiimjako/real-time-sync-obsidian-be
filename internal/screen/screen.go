@@ -9,6 +9,7 @@ import (
 
 const (
 	cursorIcon = rune('|')
+	newLine    = rune('\n')
 )
 
 type Screen struct {
@@ -55,6 +56,8 @@ func (s *Screen) Init() error {
 				s.moveCursor(-1)
 			} else if ev.Key() == tcell.KeyRight {
 				s.moveCursor(1)
+			} else if ev.Key() == tcell.KeyEnter {
+				s.key(newLine)
 			} else if ev.Key() == tcell.KeyRune {
 				s.key(ev.Rune())
 			}
@@ -176,8 +179,16 @@ func (s *Screen) Render() {
 	defer s.mu.Unlock()
 
 	s.screen.Clear()
-	for i, r := range content {
-		s.screen.SetContent(i, 0, r, nil, tcell.StyleDefault)
+	lineRow := 0
+	lineCol := 0
+	for _, r := range content {
+		if r == newLine {
+			lineCol = 0
+			lineRow++
+			continue
+		}
+		s.screen.SetContent(lineCol, lineRow, r, nil, tcell.StyleDefault)
+		lineCol++
 	}
 	s.screen.Show()
 }

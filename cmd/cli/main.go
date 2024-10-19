@@ -83,7 +83,6 @@ func pollText(s *screen.Screen) {
 			content := s.Content()
 			d := diff.ComputeDiff(lastContent, content)
 
-			log.Println(d)
 			if len(d) == 0 {
 				mu.Unlock()
 				continue
