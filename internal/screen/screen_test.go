@@ -66,5 +66,5 @@ func TestScreen(t *testing.T) {
 
 func sendKey(t testing.TB, s tcell.Screen, key tcell.Key, r rune) {
 	assert.NoError(t, s.PostEvent(tcell.NewEventKey(key, r, tcell.ModNone)))
-	time.Sleep(1 * time.Millisecond)
+	time.Sleep(5 * time.Millisecond)
 }
