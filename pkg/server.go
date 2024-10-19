@@ -4,15 +4,11 @@ import (
 	"context"
 	"errors"
 	"log"
-	"net"
 	"net/http"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/coder/websocket"
-	"github.com/coder/websocket/wsjson"
-	"github.com/google/uuid"
 	"github.com/hiimjako/real-time-sync-obsidian-be/pkg/diff"
 	"golang.org/x/time/rate"
 )
@@ -34,30 +30,23 @@ type DiffChunkMessage struct {
 }
 
 type realTimeSyncServer struct {
-	subscriberMessageBuffer int
-	publishLimiter          *rate.Limiter
-	serveMux                http.ServeMux
-	subscribersMu           sync.Mutex
-	subscribers             map[*subscriber]struct{}
-	files                   map[string]string
+	publishLimiter *rate.Limiter
+	serveMux       http.ServeMux
+	subscribersMu  sync.Mutex
+	subscribers    map[*subscriber]struct{}
+	files          map[string]string
 }
 
 func New() *realTimeSyncServer {
 	rts := &realTimeSyncServer{
-		subscriberMessageBuffer: 8,
-		publishLimiter:          rate.NewLimiter(rate.Every(100*time.Millisecond), 8),
-		subscribers:             make(map[*subscriber]struct{}),
-		files:                   make(map[string]string),
+		publishLimiter: rate.NewLimiter(rate.Every(100*time.Millisecond), 8),
+		subscribers:    make(map[*subscriber]struct{}),
+		files:          make(map[string]string),
 	}
 
 	rts.serveMux.HandleFunc(PathWebSocket, rts.subscribeHandler)
 
 	return rts
-}
-
-type subscriber struct {
-	msgs      chan InternalMessage
-	closeSlow func()
 }
 
 func (rts *realTimeSyncServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -80,78 +69,37 @@ func (rts *realTimeSyncServer) subscribeHandler(w http.ResponseWriter, r *http.R
 }
 
 func (rts *realTimeSyncServer) subscribe(w http.ResponseWriter, r *http.Request) error {
-	var mu sync.Mutex
-	var c *websocket.Conn
-	var closed bool
-	s := &subscriber{
-		msgs: make(chan InternalMessage, rts.subscriberMessageBuffer),
-		closeSlow: func() {
-			mu.Lock()
-			defer mu.Unlock()
-			closed = true
-			if c != nil {
-				c.Close(websocket.StatusPolicyViolation, "connection too slow to keep up with messages")
-			}
-		},
-	}
-	rts.addSubscriber(s)
-	defer rts.deleteSubscriber(s)
-
-	c2, err := websocket.Accept(w, r, nil)
+	s, err := NewSubscriber(w, r)
 	if err != nil {
 		return err
 	}
-	mu.Lock()
-	if closed {
-		mu.Unlock()
-		return net.ErrClosed
-	}
-	c = c2
-	mu.Unlock()
-	//nolint:errcheck
-	defer c.CloseNow()
 
-	clientId := uuid.New().String()
+	rts.addSubscriber(s)
+	defer rts.deleteSubscriber(s)
 
 	go func() {
 		for {
-			if r.Context().Err() != nil {
+			if !s.IsOpen() {
+				log.Printf("client %s disconnected\n", s.clientId)
 				return
 			}
 
-			var data DiffChunkMessage
-			err := wsjson.Read(r.Context(), c, &data)
-			if websocket.CloseStatus(err) != -1 {
-				log.Println("Client disconnected", err)
-				return
-			}
-
+			data, err := s.ReadMessage()
 			if err != nil {
-				if strings.Contains(err.Error(), "EOF") {
-					log.Println("Client disconnected", err)
-					return
-				}
-				log.Println("Error reading message:", err)
-				continue
+				log.Println(err)
 			}
 
-			fileId := data.FileId
-			if fileId == "" {
-				log.Println("Missing fileId", err)
-				continue
-			}
-
-			localCopy := rts.files[fileId]
+			localCopy := rts.files[data.FileId]
 			for _, d := range data.Chunks {
 				localCopy = diff.ApplyDiff(localCopy, d)
 			}
-			diffs := diff.ComputeDiff(rts.files[fileId], localCopy)
-			rts.files[fileId] = localCopy
+			diffs := diff.ComputeDiff(rts.files[data.FileId], localCopy)
+			rts.files[data.FileId] = localCopy
 
 			rts.broadcastPublish(InternalMessage{
-				SenderId: clientId,
+				SenderId: s.clientId,
 				Message: DiffChunkMessage{
-					FileId: fileId,
+					FileId: data.FileId,
 					Chunks: diffs,
 				},
 			})
@@ -161,11 +109,11 @@ func (rts *realTimeSyncServer) subscribe(w http.ResponseWriter, r *http.Request)
 	for {
 		select {
 		case msg := <-s.msgs:
-			if msg.SenderId == clientId {
+			if msg.SenderId == s.clientId {
 				continue
 			}
 
-			err := writeTimeout(r.Context(), time.Second*1, c, msg.Message)
+			err := s.WriteMessage(msg.Message, time.Second*1)
 			if err != nil {
 				log.Println("error writing message to client", err)
 			}
@@ -206,11 +154,4 @@ func (rts *realTimeSyncServer) deleteSubscriber(s *subscriber) {
 	rts.subscribersMu.Lock()
 	delete(rts.subscribers, s)
 	rts.subscribersMu.Unlock()
-}
-
-func writeTimeout(ctx context.Context, timeout time.Duration, c *websocket.Conn, msg DiffChunkMessage) error {
-	ctx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
-
-	return wsjson.Write(ctx, c, msg)
 }
