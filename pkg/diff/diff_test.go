@@ -32,33 +32,61 @@ func TestComputeDiff(t *testing.T) {
 }
 
 func TestApplyDiff(t *testing.T) {
-	t.Run("diff add", func(t *testing.T) {
-		text := "hello!"
-		diffAdd := DiffChunk{
-			Position: 5,
-			Type:     DiffAdd,
-			Text:     " world",
-			Len:      6,
-		}
-		updatedText := ApplyDiff(text, diffAdd)
-		assert.Equal(t, "hello world!", updatedText)
+	tests := []struct {
+		name     string
+		diff     DiffChunk
+		text     string
+		expected string
+	}{
+		{
+			name: "add a chunk",
+			diff: DiffChunk{
+				Position: 5,
+				Type:     DiffAdd,
+				Text:     " world",
+				Len:      6,
+			},
+			text:     "hello!",
+			expected: "hello world!",
+		},
+		{
+			name: "add a chunk from empty string",
+			diff: DiffChunk{
+				Position: 5,
+				Type:     DiffAdd,
+				Text:     " world",
+				Len:      6,
+			},
+			text:     "",
+			expected: " world",
+		},
+		{
+			name: "remove a chunk",
+			diff: DiffChunk{
+				Position: 5,
+				Type:     DiffRemove,
+				Text:     " world",
+				Len:      6,
+			},
+			text:     "hello world!",
+			expected: "hello!",
+		},
+		{
+			name: "remove a chunk from empty string",
+			diff: DiffChunk{
+				Position: 5,
+				Type:     DiffRemove,
+				Text:     " world",
+				Len:      6,
+			},
+			text:     "",
+			expected: "",
+		},
+	}
 
-		fromEmptyString := ApplyDiff("", diffAdd)
-		assert.Equal(t, " world", fromEmptyString)
-	})
-
-	t.Run("diff remove", func(t *testing.T) {
-		text := "hello world!"
-		diffRemove := DiffChunk{
-			Position: 5,
-			Type:     DiffRemove,
-			Text:     " world",
-			Len:      6,
-		}
-		updatedText := ApplyDiff(text, diffRemove)
-		assert.Equal(t, "hello!", updatedText)
-
-		fromEmptyString := ApplyDiff("", diffRemove)
-		assert.Equal(t, "", fromEmptyString)
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, ApplyDiff(tt.text, tt.diff))
+		})
+	}
 }
