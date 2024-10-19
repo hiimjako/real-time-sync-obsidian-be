@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/gdamore/tcell/v2"
+	"github.com/hiimjako/real-time-sync-obsidian-be/pkg/diff"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -49,6 +50,18 @@ func TestScreen(t *testing.T) {
 	s.InsertChunk(2, "ll")
 	assert.Contains(t, s.contentWithCursor(), "hell|o!")
 	assert.Equal(t, "hello!", s.Content())
+
+	updatedContent := s.ApplyDiff([]diff.DiffChunk{
+		{
+			Position: 5,
+			Type:     diff.DiffAdd,
+			Text:     " world",
+			Len:      6,
+		},
+	})
+	assert.Contains(t, s.contentWithCursor(), "hell|o world!")
+	assert.Equal(t, "hello world!", s.Content())
+	assert.Equal(t, "hello world!", updatedContent)
 }
 
 func sendKey(t testing.TB, s tcell.Screen, key tcell.Key, r rune) {

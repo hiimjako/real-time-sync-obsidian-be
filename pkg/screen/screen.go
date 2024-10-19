@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/gdamore/tcell/v2"
+	"github.com/hiimjako/real-time-sync-obsidian-be/pkg/diff"
 )
 
 const (
@@ -68,6 +69,19 @@ func (s *Screen) Content() string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	content := string(s.buffer)
+	return content
+}
+
+func (s *Screen) ApplyDiff(chunks []diff.DiffChunk) string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	content := string(s.buffer)
+	for _, d := range chunks {
+		content = diff.ApplyDiff(content, d)
+	}
+	s.buffer = []rune(content)
+
 	return content
 }
 
