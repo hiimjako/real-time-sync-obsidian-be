@@ -2,9 +2,7 @@ package rtsync
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
-	"io"
 	"log"
 	"net"
 	"net/http"
@@ -12,9 +10,27 @@ import (
 	"time"
 
 	"github.com/coder/websocket"
+	"github.com/coder/websocket/wsjson"
+	"github.com/google/uuid"
 	"github.com/hiimjako/real-time-sync-obsidian-be/pkg/diff"
 	"golang.org/x/time/rate"
 )
+
+const (
+	ApiV1Prefix = "/api/v1"
+
+	PathWebSocket = ApiV1Prefix + "/sync"
+)
+
+type InternalMessage struct {
+	SenderId string
+	Message  DiffChunkMessage
+}
+
+type DiffChunkMessage struct {
+	FileId string
+	Chunks []diff.DiffChunk
+}
 
 type realTimeSyncServer struct {
 	subscriberMessageBuffer int
@@ -33,14 +49,13 @@ func New() *realTimeSyncServer {
 		files:                   make(map[string]string),
 	}
 
-	rts.serveMux.HandleFunc("/subscribe", rts.subscribeHandler)
-	rts.serveMux.HandleFunc("/publish/{fileId}", rts.publishHandler)
+	rts.serveMux.HandleFunc(PathWebSocket, rts.subscribeHandler)
 
 	return rts
 }
 
 type subscriber struct {
-	msgs      chan []byte
+	msgs      chan InternalMessage
 	closeSlow func()
 }
 
@@ -63,56 +78,12 @@ func (rts *realTimeSyncServer) subscribeHandler(w http.ResponseWriter, r *http.R
 	}
 }
 
-func (rts *realTimeSyncServer) publishHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
-		return
-	}
-
-	fileId := r.PathValue("fileId")
-	if fileId == "" {
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-		return
-	}
-
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, http.StatusText(http.StatusUnprocessableEntity), http.StatusUnprocessableEntity)
-		return
-	}
-	defer r.Body.Close()
-
-	var data []diff.DiffChunk
-	err = json.Unmarshal(body, &data)
-	if err != nil {
-		http.Error(w, http.StatusText(http.StatusUnprocessableEntity), http.StatusUnprocessableEntity)
-		return
-	}
-
-	localCopy := rts.files[fileId]
-	for _, d := range data {
-		localCopy = diff.ApplyDiff(localCopy, d)
-	}
-	diffs := diff.ComputeDiff(rts.files[fileId], localCopy)
-	rts.files[fileId] = localCopy
-
-	diffsByte, err := json.Marshal(diffs)
-	if err != nil {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
-	}
-
-	rts.publish(diffsByte)
-
-	w.WriteHeader(http.StatusAccepted)
-}
-
 func (rts *realTimeSyncServer) subscribe(w http.ResponseWriter, r *http.Request) error {
 	var mu sync.Mutex
 	var c *websocket.Conn
 	var closed bool
 	s := &subscriber{
-		msgs: make(chan []byte, rts.subscriberMessageBuffer),
+		msgs: make(chan InternalMessage, rts.subscriberMessageBuffer),
 		closeSlow: func() {
 			mu.Lock()
 			defer mu.Unlock()
@@ -139,17 +110,62 @@ func (rts *realTimeSyncServer) subscribe(w http.ResponseWriter, r *http.Request)
 	//nolint:errcheck
 	defer c.CloseNow()
 
-	ctx := c.CloseRead(context.Background())
+	clientId := uuid.New().String()
+
+	go func() {
+		for {
+			if r.Context().Err() != nil {
+				return
+			}
+
+			var data DiffChunkMessage
+			err := wsjson.Read(r.Context(), c, &data)
+			if websocket.CloseStatus(err) != -1 {
+				log.Println("Client disconnected", err)
+				return
+			}
+
+			if err != nil {
+				log.Println("Error reading message:", err)
+				continue
+			}
+
+			fileId := data.FileId
+			if fileId == "" {
+				log.Println("Missing fileId", err)
+				continue
+			}
+
+			localCopy := rts.files[fileId]
+			for _, d := range data.Chunks {
+				localCopy = diff.ApplyDiff(localCopy, d)
+			}
+			diffs := diff.ComputeDiff(rts.files[fileId], localCopy)
+			rts.files[fileId] = localCopy
+
+			rts.publish(InternalMessage{
+				SenderId: clientId,
+				Message: DiffChunkMessage{
+					FileId: fileId,
+					Chunks: diffs,
+				},
+			})
+		}
+	}()
 
 	for {
 		select {
 		case msg := <-s.msgs:
-			err := writeTimeout(ctx, time.Second*5, c, msg)
-			if err != nil {
-				return err
+			if msg.SenderId == clientId {
+				continue
 			}
-		case <-ctx.Done():
-			return ctx.Err()
+
+			err := writeTimeout(r.Context(), time.Second*5, c, msg.Message)
+			if err != nil {
+				log.Println("error writing message to client", err)
+			}
+		case <-r.Context().Done():
+			return r.Context().Err()
 		}
 	}
 }
@@ -157,7 +173,7 @@ func (rts *realTimeSyncServer) subscribe(w http.ResponseWriter, r *http.Request)
 // publish publishes the msg to all subscribers.
 // It never blocks and so messages to slow subscribers
 // are dropped.
-func (rts *realTimeSyncServer) publish(msg []byte) {
+func (rts *realTimeSyncServer) publish(msg InternalMessage) {
 	rts.subscribersMu.Lock()
 	defer rts.subscribersMu.Unlock()
 
@@ -187,9 +203,9 @@ func (rts *realTimeSyncServer) deleteSubscriber(s *subscriber) {
 	rts.subscribersMu.Unlock()
 }
 
-func writeTimeout(ctx context.Context, timeout time.Duration, c *websocket.Conn, msg []byte) error {
+func writeTimeout(ctx context.Context, timeout time.Duration, c *websocket.Conn, msg DiffChunkMessage) error {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	return c.Write(ctx, websocket.MessageText, msg)
+	return wsjson.Write(ctx, c, msg)
 }
