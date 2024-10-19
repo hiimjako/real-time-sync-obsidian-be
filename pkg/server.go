@@ -3,7 +3,6 @@ package rtsync
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -149,7 +148,6 @@ func (rts *realTimeSyncServer) subscribe(w http.ResponseWriter, r *http.Request)
 			diffs := diff.ComputeDiff(rts.files[fileId], localCopy)
 			rts.files[fileId] = localCopy
 
-			fmt.Println(localCopy)
 			rts.publish(InternalMessage{
 				SenderId: clientId,
 				Message: DiffChunkMessage{
