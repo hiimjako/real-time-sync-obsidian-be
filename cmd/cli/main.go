@@ -17,6 +17,7 @@ import (
 )
 
 var (
+	fileId    = flag.String("file", "cli", "file to write")
 	serverURL = flag.String("url", "127.0.0.1:8080", "server URL")
 )
 
@@ -62,6 +63,10 @@ func pollText(s *screen.Screen) {
 			err = wsjson.Read(ctx, ws, &msg)
 			logOnError(err)
 
+			if msg.FileId != *fileId {
+				continue
+			}
+
 			mu.Lock()
 			lastContent = s.ApplyDiff(msg.Chunks)
 			s.Render()
@@ -85,7 +90,7 @@ func pollText(s *screen.Screen) {
 			}
 
 			err = wsjson.Write(ctx, ws, rtsync.DiffChunkMessage{
-				FileId: "cli",
+				FileId: *fileId,
 				Chunks: d,
 			})
 			logOnError(err)
