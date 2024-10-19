@@ -27,6 +27,19 @@ func TestComputeDiff(t *testing.T) {
 			},
 		},
 		{
+			name:   "compute remove chunk 2",
+			text:   " ",
+			update: "",
+			expected: []DiffChunk{
+				{
+					Position: 0,
+					Type:     DiffRemove,
+					Text:     " ",
+					Len:      1,
+				},
+			},
+		},
+		{
 			name:   "compute add chunk",
 			text:   "hello!",
 			update: "hello world!",
@@ -40,14 +53,14 @@ func TestComputeDiff(t *testing.T) {
 			},
 		},
 		{
-			name:   "compute remove chunk 2",
-			text:   " ",
-			update: "",
+			name:   "compute add chunk 2",
+			text:   "h",
+			update: "he",
 			expected: []DiffChunk{
 				{
 					Position: 0,
-					Type:     DiffRemove,
-					Text:     " ",
+					Type:     DiffAdd,
+					Text:     "e",
 					Len:      1,
 				},
 			},
@@ -71,7 +84,7 @@ func TestApplyDiff(t *testing.T) {
 		{
 			name: "add a chunk",
 			diff: DiffChunk{
-				Position: 5,
+				Position: 4,
 				Type:     DiffAdd,
 				Text:     " world",
 				Len:      6,
@@ -95,11 +108,11 @@ func TestApplyDiff(t *testing.T) {
 			diff: DiffChunk{
 				Position: 0,
 				Type:     DiffAdd,
-				Text:     "a",
-				Len:      1,
+				Text:     "test",
+				Len:      4,
 			},
 			text:     "",
-			expected: "a",
+			expected: "test",
 		},
 		{
 			name: "remove a chunk",
@@ -128,11 +141,22 @@ func TestApplyDiff(t *testing.T) {
 			diff: DiffChunk{
 				Position: 0,
 				Type:     DiffRemove,
-				Text:     "a",
+				Text:     "test",
+				Len:      4,
+			},
+			text:     "test",
+			expected: "",
+		},
+		{
+			name: "add in middle of word",
+			diff: DiffChunk{
+				Position: 2,
+				Type:     DiffAdd,
+				Text:     "l",
 				Len:      1,
 			},
-			text:     "a",
-			expected: "",
+			text:     "wor",
+			expected: "worl",
 		},
 	}
 

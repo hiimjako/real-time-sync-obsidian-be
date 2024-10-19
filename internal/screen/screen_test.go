@@ -53,7 +53,7 @@ func TestScreen(t *testing.T) {
 
 	updatedContent := s.ApplyDiff([]diff.DiffChunk{
 		{
-			Position: 5,
+			Position: 4,
 			Type:     diff.DiffAdd,
 			Text:     " world",
 			Len:      6,

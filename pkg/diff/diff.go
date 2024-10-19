@@ -12,9 +12,9 @@ const (
 )
 
 type DiffChunk struct {
+	Type Operation
 	// Position indicates the position immediately after the last valid character, where the diff should start being applied.
 	Position int
-	Type     Operation
 	Text     string
 	Len      int
 }
@@ -57,7 +57,12 @@ func ApplyDiff(text string, diff DiffChunk) string {
 		if text == "" {
 			return diff.Text
 		}
-		return text[:diff.Position] + diff.Text + text[diff.Position:]
+
+		if diff.Position == 0 {
+			return text[diff.Position:] + diff.Text
+		}
+
+		return text[:diff.Position+1] + diff.Text + text[diff.Position+1:]
 	case DiffRemove:
 		if text == "" {
 			return ""
