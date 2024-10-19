@@ -3,9 +3,11 @@ package rtsync
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -126,6 +128,10 @@ func (rts *realTimeSyncServer) subscribe(w http.ResponseWriter, r *http.Request)
 			}
 
 			if err != nil {
+				if strings.Contains(err.Error(), "EOF") {
+					log.Println("Client disconnected", err)
+					return
+				}
 				log.Println("Error reading message:", err)
 				continue
 			}
@@ -143,6 +149,7 @@ func (rts *realTimeSyncServer) subscribe(w http.ResponseWriter, r *http.Request)
 			diffs := diff.ComputeDiff(rts.files[fileId], localCopy)
 			rts.files[fileId] = localCopy
 
+			fmt.Println(localCopy)
 			rts.publish(InternalMessage{
 				SenderId: clientId,
 				Message: DiffChunkMessage{
