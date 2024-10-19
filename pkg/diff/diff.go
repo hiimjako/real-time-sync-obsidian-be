@@ -12,6 +12,7 @@ const (
 )
 
 type DiffChunk struct {
+	// Position indicates the position immediately after the last valid character, where the diff should start being applied.
 	Position int
 	Type     Operation
 	Text     string
@@ -61,10 +62,12 @@ func ApplyDiff(text string, diff DiffChunk) string {
 		if text == "" {
 			return ""
 		}
-		if diff.Position+diff.Len > len(text) {
-			return text[:diff.Position]
+
+		if diff.Position == 0 {
+			return text[diff.Len:]
 		}
-		return text[:diff.Position] + text[diff.Position+diff.Len:]
+
+		return text[:diff.Position+1] + text[diff.Position+diff.Len+1:]
 	}
 	panic("not reachable")
 }

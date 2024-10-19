@@ -91,6 +91,17 @@ func TestApplyDiff(t *testing.T) {
 			expected: " world",
 		},
 		{
+			name: "add a chunk from 0",
+			diff: DiffChunk{
+				Position: 0,
+				Type:     DiffAdd,
+				Text:     "a",
+				Len:      1,
+			},
+			text:     "",
+			expected: "a",
+		},
+		{
 			name: "remove a chunk",
 			diff: DiffChunk{
 				Position: 4,
@@ -113,7 +124,7 @@ func TestApplyDiff(t *testing.T) {
 			expected: "",
 		},
 		{
-			name: "remove a chunk from single word",
+			name: "remove a chunk from 0",
 			diff: DiffChunk{
 				Position: 0,
 				Type:     DiffRemove,
