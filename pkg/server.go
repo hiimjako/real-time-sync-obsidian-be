@@ -89,20 +89,7 @@ func (rts *realTimeSyncServer) subscribe(w http.ResponseWriter, r *http.Request)
 				log.Println(err)
 			}
 
-			localCopy := rts.files[data.FileId]
-			for _, d := range data.Chunks {
-				localCopy = diff.ApplyDiff(localCopy, d)
-			}
-			diffs := diff.ComputeDiff(rts.files[data.FileId], localCopy)
-			rts.files[data.FileId] = localCopy
-
-			rts.broadcastPublish(InternalMessage{
-				SenderId: s.clientId,
-				Message: DiffChunkMessage{
-					FileId: data.FileId,
-					Chunks: diffs,
-				},
-			})
+			rts.processMessage(s, data)
 		}
 	}()
 
@@ -121,6 +108,23 @@ func (rts *realTimeSyncServer) subscribe(w http.ResponseWriter, r *http.Request)
 			return r.Context().Err()
 		}
 	}
+}
+
+func (rts *realTimeSyncServer) processMessage(s *subscriber, data DiffChunkMessage) {
+	localCopy := rts.files[data.FileId]
+	for _, d := range data.Chunks {
+		localCopy = diff.ApplyDiff(localCopy, d)
+	}
+	diffs := diff.ComputeDiff(rts.files[data.FileId], localCopy)
+	rts.files[data.FileId] = localCopy
+
+	rts.broadcastPublish(InternalMessage{
+		SenderId: s.clientId,
+		Message: DiffChunkMessage{
+			FileId: data.FileId,
+			Chunks: diffs,
+		},
+	})
 }
 
 // broadcastPublish publishes the msg to all subscribers.
