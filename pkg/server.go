@@ -10,6 +10,7 @@ import (
 
 	"github.com/coder/websocket"
 	"github.com/hiimjako/real-time-sync-obsidian-be/pkg/diff"
+	"github.com/hiimjako/real-time-sync-obsidian-be/pkg/storage"
 	"golang.org/x/time/rate"
 )
 
@@ -35,16 +36,21 @@ type realTimeSyncServer struct {
 	subscribersMu  sync.Mutex
 	subscribers    map[*subscriber]struct{}
 	files          map[string]string
+	storageQueue   chan DiffChunkMessage
+	storage        storage.Storage
 }
 
-func New() *realTimeSyncServer {
+func New(s storage.Storage) *realTimeSyncServer {
 	rts := &realTimeSyncServer{
 		publishLimiter: rate.NewLimiter(rate.Every(100*time.Millisecond), 8),
 		subscribers:    make(map[*subscriber]struct{}),
 		files:          make(map[string]string),
+		storageQueue:   make(chan DiffChunkMessage, 128),
+		storage:        s,
 	}
 
 	rts.serveMux.HandleFunc(PathWebSocket, rts.subscribeHandler)
+	go rts.persistChunks()
 
 	return rts
 }
@@ -119,6 +125,8 @@ func (rts *realTimeSyncServer) processMessage(s *subscriber, data DiffChunkMessa
 	diffs := diff.ComputeDiff(rts.files[data.FileId], localCopy)
 	rts.files[data.FileId] = localCopy
 
+	rts.storageQueue <- data
+
 	rts.broadcastPublish(InternalMessage{
 		SenderId: s.clientId,
 		Message: DiffChunkMessage{
@@ -126,6 +134,21 @@ func (rts *realTimeSyncServer) processMessage(s *subscriber, data DiffChunkMessa
 			Chunks: diffs,
 		},
 	})
+}
+
+func (rts *realTimeSyncServer) persistChunks() {
+	for {
+		// select {
+		data := <-rts.storageQueue
+		for _, d := range data.Chunks {
+			err := rts.storage.PersistChunk(data.FileId, d)
+			if err != nil {
+				log.Println(err)
+			}
+		}
+
+		// }
+	}
 }
 
 // broadcastPublish publishes the msg to all subscribers.

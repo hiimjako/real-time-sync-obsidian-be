@@ -10,7 +10,9 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/hiimjako/real-time-sync-obsidian-be/internal/env"
 	rtsync "github.com/hiimjako/real-time-sync-obsidian-be/pkg"
+	"github.com/hiimjako/real-time-sync-obsidian-be/pkg/storage"
 )
 
 var (
@@ -28,13 +30,17 @@ func main() {
 }
 
 func run(host, port string) error {
+	env := env.LoadEnv()
+
 	l, err := net.Listen("tcp", net.JoinHostPort(host, port))
 	if err != nil {
 		return err
 	}
 	log.Printf("listening on ws://%v", l.Addr())
 
-	handler := rtsync.New()
+	disk := storage.NewDisk(env.StorageDir)
+
+	handler := rtsync.New(disk)
 	s := &http.Server{
 		Handler:      handler,
 		ReadTimeout:  time.Second * 10,
