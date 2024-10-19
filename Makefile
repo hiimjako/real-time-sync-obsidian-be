@@ -10,6 +10,10 @@ cli:
 test:
 	go test ./... -count 1 -race
 
+.PHONY: lint
+lint:
+	golangci-lint run --fix
+
 
 
 
