@@ -13,6 +13,8 @@ test:
 .PHONY: lint
 lint:
 	golangci-lint run --fix
+	npx prettier-pnp --pnp prettier-plugin-sql --write migrations/*.sql --config .github/config/.prettierrc
+
 
 
 

@@ -10,7 +10,8 @@ import (
 )
 
 type EnvVariables struct {
-	StorageDir string `env:"STORAGE_DIR,default=./data"`
+	StorageDir     string `env:"STORAGE_DIR,default=./data"`
+	SqliteFilepath string `env:"SQLITE_FILEPATH,default=./data/db.sqlite3"`
 }
 
 func LoadEnv(paths ...string) *EnvVariables {
