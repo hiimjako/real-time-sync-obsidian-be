@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"database/sql"
-	"flag"
 	"log"
 	"net"
 	"net/http"
@@ -20,30 +19,23 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-var (
-	host = flag.String("addr", "127.0.0.1", "host to expose server")
-	port = flag.String("port", "8080", "port to expose server")
-)
-
 func main() {
-	flag.Parse()
+	env := env.LoadEnv()
 
-	err := run(*host, *port)
+	err := run(env)
 	if err != nil {
 		log.Fatal(err)
 	}
 }
 
-func run(host, port string) error {
-	env := env.LoadEnv()
-
+func run(env *env.EnvVariables) error {
 	log.Printf("running migrations")
 	err := migrate(env.SqliteFilepath)
 	if err != nil {
 		return err
 	}
 
-	l, err := net.Listen("tcp", net.JoinHostPort(host, port))
+	l, err := net.Listen("tcp", net.JoinHostPort(env.Host, env.Port))
 	if err != nil {
 		return err
 	}
