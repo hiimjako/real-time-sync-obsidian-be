@@ -31,8 +31,8 @@ func TestPersistChunk(t *testing.T) {
 			expected: "hello world!",
 			diffs: [][]diff.DiffChunk{
 				diff.ComputeDiff("", "hello"),
-				diff.ComputeDiff("hello", "hello world"),
-				diff.ComputeDiff("hello world", "hello world!"),
+				diff.ComputeDiff("hello", "hello!"),
+				diff.ComputeDiff("hello!", "hello world!"),
 			},
 		},
 	}
