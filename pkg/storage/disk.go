@@ -42,7 +42,22 @@ func addBytesFromFile(filePath string, start int64, str string) error {
 		return err
 	}
 
-	_, err = file.Write([]byte(string(str)))
+	remainder, err := io.ReadAll(file)
+	if err != nil {
+		return err
+	}
+
+	_, err = file.Seek(start, 0)
+	if err != nil {
+		return err
+	}
+
+	_, err = file.Write([]byte(str))
+	if err != nil {
+		return err
+	}
+
+	_, err = file.Write(remainder)
 	if err != nil {
 		return err
 	}
@@ -56,7 +71,7 @@ func addBytesFromFile(filePath string, start int64, str string) error {
 }
 
 func removeBytesFromFile(filePath string, start, length int64) error {
-	file, err := os.OpenFile(filePath, os.O_RDWR, 0644)
+	file, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
 		return err
 	}

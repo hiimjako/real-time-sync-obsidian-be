@@ -10,12 +10,15 @@ import (
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
 	"github.com/hiimjako/real-time-sync-obsidian-be/pkg/diff"
+	"github.com/hiimjako/real-time-sync-obsidian-be/pkg/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestIntegration(t *testing.T) {
-	ts := httptest.NewServer(New())
+	storageStub := storage.NewStorageStub()
+	handler := New(storageStub)
+	ts := httptest.NewServer(handler)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 
@@ -52,10 +55,12 @@ func TestIntegration(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.Equal(t, msg, recMsg)
+	assert.Equal(t, map[string]string{"file-1": "Hello!"}, storageStub.Files())
 
 	t.Cleanup(func() {
 		cancel()
 		sender.Close(websocket.StatusNormalClosure, "")
 		ts.Close()
+		handler.Close()
 	})
 }
