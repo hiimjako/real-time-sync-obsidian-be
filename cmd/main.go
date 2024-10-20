@@ -12,7 +12,7 @@ import (
 
 	"github.com/hiimjako/real-time-sync-obsidian-be/internal/env"
 	rtsync "github.com/hiimjako/real-time-sync-obsidian-be/pkg"
-	"github.com/hiimjako/real-time-sync-obsidian-be/pkg/storage"
+	"github.com/hiimjako/real-time-sync-obsidian-be/pkg/filestorage"
 )
 
 var (
@@ -38,7 +38,7 @@ func run(host, port string) error {
 	}
 	log.Printf("listening on ws://%v", l.Addr())
 
-	disk := storage.NewDisk(env.StorageDir)
+	disk := filestorage.NewDisk(env.StorageDir)
 
 	handler := rtsync.New(disk)
 	defer handler.Close()

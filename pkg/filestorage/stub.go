@@ -1,4 +1,4 @@
-package storage
+package filestorage
 
 import (
 	"sync"
@@ -6,25 +6,25 @@ import (
 	"github.com/hiimjako/real-time-sync-obsidian-be/pkg/diff"
 )
 
-type StorageStub struct {
+type FileStorageStub struct {
 	files map[string]string
 	mu    sync.Mutex
 }
 
-func NewStorageStub() *StorageStub {
-	return &StorageStub{
+func NewStorageStub() *FileStorageStub {
+	return &FileStorageStub{
 		files: map[string]string{},
 	}
 }
 
-func (s *StorageStub) PersistChunk(file string, d diff.DiffChunk) error {
+func (s *FileStorageStub) PersistChunk(file string, d diff.DiffChunk) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.files[file] = diff.ApplyDiff(s.files[file], d)
 	return nil
 }
 
-func (s *StorageStub) Files() map[string]string {
+func (s *FileStorageStub) Files() map[string]string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 

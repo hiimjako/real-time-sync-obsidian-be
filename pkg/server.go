@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/hiimjako/real-time-sync-obsidian-be/pkg/diff"
-	"github.com/hiimjako/real-time-sync-obsidian-be/pkg/storage"
+	"github.com/hiimjako/real-time-sync-obsidian-be/pkg/filestorage"
 	"golang.org/x/time/rate"
 )
 
@@ -16,6 +16,7 @@ const (
 	ApiV1Prefix = "/api/v1"
 
 	PathWebSocket = ApiV1Prefix + "/sync"
+	PathFile      = ApiV1Prefix + "/file/{id}"
 )
 
 type InternalMessage struct {
@@ -38,10 +39,10 @@ type realTimeSyncServer struct {
 	subscribers    map[*subscriber]struct{}
 	files          map[string]string
 	storageQueue   chan DiffChunkMessage
-	storage        storage.Storage
+	storage        filestorage.Storage
 }
 
-func New(s storage.Storage) *realTimeSyncServer {
+func New(s filestorage.Storage) *realTimeSyncServer {
 	ctx, cancel := context.WithCancel(context.Background())
 	rts := &realTimeSyncServer{
 		ctx:    ctx,
@@ -55,6 +56,7 @@ func New(s storage.Storage) *realTimeSyncServer {
 	}
 
 	rts.serveMux.HandleFunc(PathWebSocket, rts.subscribeHandler)
+	rts.serveMux.HandleFunc(PathFile, rts.fileHandler)
 	go rts.persistChunks()
 
 	return rts

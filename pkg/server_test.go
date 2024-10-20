@@ -10,13 +10,13 @@ import (
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
 	"github.com/hiimjako/real-time-sync-obsidian-be/pkg/diff"
-	"github.com/hiimjako/real-time-sync-obsidian-be/pkg/storage"
+	"github.com/hiimjako/real-time-sync-obsidian-be/pkg/filestorage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestIntegration(t *testing.T) {
-	storageStub := storage.NewStorageStub()
+	storageStub := filestorage.NewStorageStub()
 	handler := New(storageStub)
 	ts := httptest.NewServer(handler)
 

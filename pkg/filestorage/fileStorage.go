@@ -1,4 +1,4 @@
-package storage
+package filestorage
 
 import "github.com/hiimjako/real-time-sync-obsidian-be/pkg/diff"
 
