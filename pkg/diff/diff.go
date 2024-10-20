@@ -13,7 +13,7 @@ const (
 
 type DiffChunk struct {
 	Type Operation
-	// Position indicates the position immediately after the last valid character, where the diff should start being applied.
+	// Position indicates the position immediately after the last valid character, inclusive.
 	Position int64
 	Text     string
 	Len      int64
@@ -36,7 +36,7 @@ func ComputeDiff(oldText, newText string) []DiffChunk {
 				Text:     diff.Text,
 				Len:      l,
 			})
-			idx += int64(l) - 1
+			idx += int64(l)
 		case diffmatchpatch.DiffDelete:
 			diffChunks = append(diffChunks, DiffChunk{
 				Type:     DiffRemove,
@@ -45,7 +45,7 @@ func ComputeDiff(oldText, newText string) []DiffChunk {
 				Len:      l,
 			})
 		case diffmatchpatch.DiffEqual:
-			idx += l - 1
+			idx += l
 		}
 	}
 
@@ -63,7 +63,7 @@ func ApplyDiff(text string, diff DiffChunk) string {
 			return text[diff.Position:] + diff.Text
 		}
 
-		return text[:diff.Position+1] + diff.Text + text[diff.Position+1:]
+		return text[:diff.Position] + diff.Text + text[diff.Position:]
 	case DiffRemove:
 		if text == "" {
 			return ""
@@ -73,7 +73,7 @@ func ApplyDiff(text string, diff DiffChunk) string {
 			return text[diff.Len:]
 		}
 
-		return text[:diff.Position+1] + text[diff.Position+diff.Len+1:]
+		return text[:diff.Position] + text[diff.Position-1+diff.Len+1:]
 	}
 	panic("not reachable")
 }
