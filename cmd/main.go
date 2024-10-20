@@ -41,6 +41,8 @@ func run(host, port string) error {
 	disk := storage.NewDisk(env.StorageDir)
 
 	handler := rtsync.New(disk)
+	defer handler.Close()
+
 	s := &http.Server{
 		Handler:      handler,
 		ReadTimeout:  time.Second * 10,
