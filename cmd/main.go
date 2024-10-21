@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/hiimjako/real-time-sync-obsidian-be/internal/env"
+	"github.com/hiimjako/real-time-sync-obsidian-be/internal/repository"
 	rtsync "github.com/hiimjako/real-time-sync-obsidian-be/pkg"
 	"github.com/hiimjako/real-time-sync-obsidian-be/pkg/filestorage"
 	"github.com/pressly/goose"
@@ -30,8 +31,13 @@ func main() {
 
 func run(env *env.EnvVariables) error {
 	log.Printf("running migrations")
-	err := migrate(env.SqliteFilepath)
+
+	dbSqlite, err := sql.Open("sqlite3", env.SqliteFilepath)
 	if err != nil {
+		return err
+	}
+
+	if err := migrate(dbSqlite); err != nil {
 		return err
 	}
 
@@ -41,9 +47,10 @@ func run(env *env.EnvVariables) error {
 	}
 	log.Printf("listening on ws://%v", l.Addr())
 
+	db := repository.New(dbSqlite)
 	disk := filestorage.NewDisk(env.StorageDir)
 
-	handler := rtsync.New(disk)
+	handler := rtsync.New(db, disk)
 	defer handler.Close()
 
 	s := &http.Server{
@@ -71,13 +78,7 @@ func run(env *env.EnvVariables) error {
 	return s.Shutdown(ctx)
 }
 
-func migrate(sqliteFilepath string) error {
-	db, err := sql.Open("sqlite3", sqliteFilepath)
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-
+func migrate(db *sql.DB) error {
 	if err := goose.SetDialect("sqlite3"); err != nil {
 		return err
 	}

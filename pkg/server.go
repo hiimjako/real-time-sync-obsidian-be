@@ -7,15 +7,16 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hiimjako/real-time-sync-obsidian-be/internal/repository"
 	"github.com/hiimjako/real-time-sync-obsidian-be/pkg/filestorage"
 	"golang.org/x/time/rate"
 )
 
 const (
-	ApiV1Prefix = "/api/v1"
+	ApiV1Prefix = "/v1"
 
 	PathWebSocket = ApiV1Prefix + "/sync"
-	PathFile      = ApiV1Prefix + "/file/{id}"
+	PathHttpApi   = ApiV1Prefix + "/api"
 )
 
 type realTimeSyncServer struct {
@@ -23,29 +24,34 @@ type realTimeSyncServer struct {
 	cancel context.CancelFunc
 
 	publishLimiter *rate.Limiter
-	serveMux       http.ServeMux
+	serverMux      *http.ServeMux
 	subscribersMu  sync.Mutex
 	subscribers    map[*subscriber]struct{}
 	files          map[string]string
 	storageQueue   chan DiffChunkMessage
 	storage        filestorage.Storage
+	db             *repository.Queries
 }
 
-func New(s filestorage.Storage) *realTimeSyncServer {
+func New(db *repository.Queries, s filestorage.Storage) *realTimeSyncServer {
 	ctx, cancel := context.WithCancel(context.Background())
 	rts := &realTimeSyncServer{
 		ctx:    ctx,
 		cancel: cancel,
 
+		serverMux:      http.NewServeMux(),
 		publishLimiter: rate.NewLimiter(rate.Every(100*time.Millisecond), 8),
 		subscribers:    make(map[*subscriber]struct{}),
 		files:          make(map[string]string),
 		storageQueue:   make(chan DiffChunkMessage, 128),
 		storage:        s,
+		db:             db,
 	}
 
-	rts.serveMux.HandleFunc(PathWebSocket, rts.wsHandler)
-	rts.serveMux.HandleFunc(PathFile, rts.apiHandler)
+	routerWithStripPrefix := http.StripPrefix(PathHttpApi, rts.apiHandler())
+	rts.serverMux.Handle(PathHttpApi+"/", routerWithStripPrefix)
+	rts.serverMux.HandleFunc(PathWebSocket, rts.wsHandler)
+
 	go rts.persistChunks()
 
 	return rts
@@ -59,7 +65,7 @@ func (rts *realTimeSyncServer) Close() error {
 }
 
 func (rts *realTimeSyncServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	rts.serveMux.ServeHTTP(w, r)
+	rts.serverMux.ServeHTTP(w, r)
 }
 
 func (rts *realTimeSyncServer) persistChunks() {

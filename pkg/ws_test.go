@@ -2,6 +2,7 @@ package rtsync
 
 import (
 	"context"
+	"database/sql"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -9,15 +10,21 @@ import (
 
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
+	"github.com/hiimjako/real-time-sync-obsidian-be/internal/repository"
 	"github.com/hiimjako/real-time-sync-obsidian-be/pkg/diff"
 	"github.com/hiimjako/real-time-sync-obsidian-be/pkg/filestorage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
-func TestIntegration(t *testing.T) {
+func Test_wsHandler(t *testing.T) {
+	db, err := sql.Open("sqlite3", ":memory:")
+	require.NoError(t, err)
+
 	storageStub := filestorage.NewStorageStub()
-	handler := New(storageStub)
+	handler := New(repository.New(db), storageStub)
 	ts := httptest.NewServer(handler)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
