@@ -21,7 +21,7 @@ type DiffChunkMessage struct {
 	Chunks []diff.DiffChunk
 }
 
-func (rts *realTimeSyncServer) subscribeHandler(w http.ResponseWriter, r *http.Request) {
+func (rts *realTimeSyncServer) wsHandler(w http.ResponseWriter, r *http.Request) {
 	err := rts.subscribe(w, r)
 	if errors.Is(err, context.Canceled) {
 		return

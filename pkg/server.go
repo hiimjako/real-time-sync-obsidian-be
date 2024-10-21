@@ -44,8 +44,8 @@ func New(s filestorage.Storage) *realTimeSyncServer {
 		storage:        s,
 	}
 
-	rts.serveMux.HandleFunc(PathWebSocket, rts.subscribeHandler)
-	rts.serveMux.HandleFunc(PathFile, rts.fileHandler)
+	rts.serveMux.HandleFunc(PathWebSocket, rts.wsHandler)
+	rts.serveMux.HandleFunc(PathFile, rts.apiHandler)
 	go rts.persistChunks()
 
 	return rts
