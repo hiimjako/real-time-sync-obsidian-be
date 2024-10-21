@@ -20,7 +20,7 @@ type subscriber struct {
 
 	isConnected bool
 	clientId    string
-	msgs        chan InternalMessage
+	msgs        chan InternalWSMessage
 	closeSlow   func()
 }
 
@@ -37,7 +37,7 @@ func NewSubscriber(w http.ResponseWriter, r *http.Request) (*subscriber, error) 
 		r:           r,
 		ctx:         r.Context(),
 		isConnected: true,
-		msgs:        make(chan InternalMessage, subscriberMessageBuffer),
+		msgs:        make(chan InternalWSMessage, subscriberMessageBuffer),
 		clientId:    uuid.New().String(),
 		closeSlow: func() {
 			if c != nil {

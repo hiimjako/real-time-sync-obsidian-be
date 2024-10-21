@@ -11,6 +11,16 @@ import (
 	"github.com/hiimjako/real-time-sync-obsidian-be/pkg/diff"
 )
 
+type InternalWSMessage struct {
+	SenderId string
+	Message  DiffChunkMessage
+}
+
+type DiffChunkMessage struct {
+	FileId string
+	Chunks []diff.DiffChunk
+}
+
 func (rts *realTimeSyncServer) subscribeHandler(w http.ResponseWriter, r *http.Request) {
 	err := rts.subscribe(w, r)
 	if errors.Is(err, context.Canceled) {
@@ -83,7 +93,7 @@ func (rts *realTimeSyncServer) processMessage(s *subscriber, data DiffChunkMessa
 
 	rts.storageQueue <- data
 
-	rts.broadcastPublish(InternalMessage{
+	rts.broadcastPublish(InternalWSMessage{
 		SenderId: s.clientId,
 		Message: DiffChunkMessage{
 			FileId: data.FileId,
@@ -95,7 +105,7 @@ func (rts *realTimeSyncServer) processMessage(s *subscriber, data DiffChunkMessa
 // broadcastPublish publishes the msg to all subscribers.
 // It never blocks and so messages to slow subscribers
 // are dropped.
-func (rts *realTimeSyncServer) broadcastPublish(msg InternalMessage) {
+func (rts *realTimeSyncServer) broadcastPublish(msg InternalWSMessage) {
 	rts.subscribersMu.Lock()
 	defer rts.subscribersMu.Unlock()
 

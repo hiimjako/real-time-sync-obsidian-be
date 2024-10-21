@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hiimjako/real-time-sync-obsidian-be/pkg/diff"
 	"github.com/hiimjako/real-time-sync-obsidian-be/pkg/filestorage"
 	"golang.org/x/time/rate"
 )
@@ -18,16 +17,6 @@ const (
 	PathWebSocket = ApiV1Prefix + "/sync"
 	PathFile      = ApiV1Prefix + "/file/{id}"
 )
-
-type InternalMessage struct {
-	SenderId string
-	Message  DiffChunkMessage
-}
-
-type DiffChunkMessage struct {
-	FileId string
-	Chunks []diff.DiffChunk
-}
 
 type realTimeSyncServer struct {
 	ctx    context.Context
