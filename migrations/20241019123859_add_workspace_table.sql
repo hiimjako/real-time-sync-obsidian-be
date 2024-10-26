@@ -1,20 +1,16 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE TABLE files (
+CREATE TABLE workspace (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    disk_path TEXT NOT NULL,
-    virtual_path TEXT NOT NULL,
-    mime_type TEXT,            
-    checksum TEXT,
+    name TEXT NOT NULL,
+    password TEXT NOT NULL,                 
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    workspace_id INTEGER,
-    UNIQUE (disk_path)
+    UNIQUE (name)
 );
 -- +goose StatementEnd
 
-
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE files;
+DROP TABLE workspace;
 -- +goose StatementEnd
