@@ -39,7 +39,6 @@ COPY --from=build /etc/passwd_app /etc/passwd
 USER app
 
 COPY --from=build /app/bin/app /go/bin/app
-COPY --from=build /app/.env /go/.env 
 COPY --from=build-info /app/buildinfo /go/buildinfo
 
 CMD ["/go/bin/app"]
