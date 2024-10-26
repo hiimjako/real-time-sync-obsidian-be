@@ -15,7 +15,7 @@ import (
 type authKey string
 
 const (
-	AuthUserID authKey = "middleware.auth.userID"
+	AuthWorkspaceID authKey = "middleware.auth.workspaceID"
 
 	Issuer = "obsidian-rt"
 )
@@ -48,13 +48,13 @@ func IsAuthenticated(ao AuthOptions) func(next http.Handler) http.Handler {
 			}
 
 			encodedToken := strings.TrimPrefix(authorization, "Bearer ")
-			userID, err := VerifyToken(ao, encodedToken)
+			workspaceID, err := VerifyToken(ao, encodedToken)
 			if err != nil {
 				writeUnauthed(w)
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), AuthUserID, userID)
+			ctx := context.WithValue(r.Context(), AuthWorkspaceID, workspaceID)
 			req := r.WithContext(ctx)
 
 			next.ServeHTTP(w, req)
@@ -62,7 +62,7 @@ func IsAuthenticated(ao AuthOptions) func(next http.Handler) http.Handler {
 	}
 }
 
-func CreateToken(ao AuthOptions, userID int) (string, error) {
+func CreateToken(ao AuthOptions, workspaceID int) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		CustomClaims{
 			RegisteredClaims: jwt.RegisteredClaims{
@@ -70,7 +70,7 @@ func CreateToken(ao AuthOptions, userID int) (string, error) {
 				IssuedAt:  jwt.NewNumericDate(time.Now()),
 				NotBefore: jwt.NewNumericDate(time.Now()),
 				Issuer:    Issuer,
-				Subject:   strconv.Itoa(userID),
+				Subject:   strconv.Itoa(workspaceID),
 				ID:        uuid.New().String(),
 			},
 		})
@@ -110,6 +110,6 @@ func VerifyToken(ao AuthOptions, tokenString string) (int, error) {
 	return sub, nil
 }
 
-func UserIDFromCtx(ctx context.Context) int {
-	return ctx.Value(AuthUserID).(int)
+func WorkspaceIDFromCtx(ctx context.Context) int {
+	return ctx.Value(AuthWorkspaceID).(int)
 }

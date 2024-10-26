@@ -13,18 +13,18 @@ import (
 func TestIsAuthenticated(t *testing.T) {
 	ao := AuthOptions{SecretKey: []byte("secret-key")}
 
-	createToken := func(userID int) string {
-		token, err := CreateToken(ao, userID)
+	createToken := func(workspaceID int) string {
+		token, err := CreateToken(ao, workspaceID)
 		require.NoError(t, err)
 		require.NotEmpty(t, token)
 		return token
 	}
 
 	tests := []struct {
-		name           string
-		authHeader     string
-		expectedStatus int
-		expectedUserID int
+		name                string
+		authHeader          string
+		expectedStatus      int
+		expectedWorkspaceID int
 	}{
 		{"No Auth Header", "", http.StatusUnauthorized, 0},
 		{"Invalid Token", "Bearer invalidToken", http.StatusUnauthorized, 0},
@@ -41,7 +41,7 @@ func TestIsAuthenticated(t *testing.T) {
 			rec := httptest.NewRecorder()
 
 			next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				assert.Equal(t, tt.expectedUserID, UserIDFromCtx(r.Context()))
+				assert.Equal(t, tt.expectedWorkspaceID, WorkspaceIDFromCtx(r.Context()))
 				w.WriteHeader(http.StatusOK)
 			})
 
@@ -53,10 +53,10 @@ func TestIsAuthenticated(t *testing.T) {
 	}
 }
 
-func TestUserIDFromCtx(t *testing.T) {
-	expectedUserID := 10
-	ctx := context.WithValue(context.Background(), AuthUserID, 10)
-	userID := UserIDFromCtx(ctx)
+func TestWorkspaceIDFromCtx(t *testing.T) {
+	expectedWorkspaceID := 10
+	ctx := context.WithValue(context.Background(), AuthWorkspaceID, 10)
+	workspaceID := WorkspaceIDFromCtx(ctx)
 
-	assert.Equal(t, expectedUserID, userID)
+	assert.Equal(t, expectedWorkspaceID, workspaceID)
 }
