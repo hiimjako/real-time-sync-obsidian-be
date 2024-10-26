@@ -1,0 +1,69 @@
+name: Golang Lint & Test
+
+concurrency:
+  group: ${{github.repository}}-${{ github.ref_name }}-go
+  cancel-in-progress: true
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      files_changed: ${{ steps.filter.outputs.go == 'true' || steps.filter.outputs.scripts == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2 # To retrieve the preceding commit.
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          list-files: shell
+          filters: |
+            scripts:
+              - '.golangci.yaml'
+              - 'Makefile'
+              - '.github/workflows/golang.*'
+            go:
+              - '**/*.go'
+              - 'go.mod'
+              - 'go.sum'
+  lint:
+    needs: changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    if: ${{ needs.changes.outputs.files_changed == 'true' && github.event.pull_request }}
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          args: --fix
+          version: latest
+      - name: lint sql
+        run: |
+          npx prettier-pnp --pnp prettier-plugin-sql --write migrations/*.sql --config .github/config/.prettierrc
+
+  test:
+    needs: changes
+    runs-on: ubuntu-latest
+    if: ${{ needs.changes.outputs.files_changed == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Test
+        run: |
+          make test
+      
