@@ -1,4 +1,4 @@
-FROM golang:1.23.1-alpine AS build
+FROM golang:1.23.2-alpine AS build
 
 RUN addgroup -g 501 guest \
     && adduser --disabled-password \
@@ -17,7 +17,7 @@ COPY . .
 
 RUN --mount=type=cache,target=/root/.cache/go-build go build -v -o bin/app ./cmd/main.go
 
-FROM golang:1.23.1-alpine AS build-info
+FROM golang:1.23.2-alpine AS build-info
 
 ARG GIT_REV
 ARG GIT_VERSION
