@@ -11,8 +11,10 @@ import (
 )
 
 func TestIsAuthenticated(t *testing.T) {
+	ao := AuthOptions{SecretKey: []byte("secret-key")}
+
 	createToken := func(userID int) string {
-		token, err := CreateToken(userID)
+		token, err := CreateToken(ao, userID)
 		require.NoError(t, err)
 		require.NotEmpty(t, token)
 		return token
@@ -43,7 +45,7 @@ func TestIsAuthenticated(t *testing.T) {
 				w.WriteHeader(http.StatusOK)
 			})
 
-			handler := IsAuthenticated(next)
+			handler := IsAuthenticated(ao)(next)
 			handler.ServeHTTP(rec, req)
 
 			assert.Equal(t, tt.expectedStatus, rec.Code)

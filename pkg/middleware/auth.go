@@ -12,8 +12,6 @@ import (
 	"github.com/google/uuid"
 )
 
-var secretKey = []byte("secret -key")
-
 type authKey string
 
 const (
@@ -26,6 +24,10 @@ type CustomClaims struct {
 	jwt.RegisteredClaims
 }
 
+type AuthOptions struct {
+	SecretKey []byte
+}
+
 func writeUnauthed(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusUnauthorized)
 
@@ -35,30 +37,32 @@ func writeUnauthed(w http.ResponseWriter) {
 	}
 }
 
-func IsAuthenticated(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		authorization := r.Header.Get("Authorization")
+func IsAuthenticated(ao AuthOptions) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			authorization := r.Header.Get("Authorization")
 
-		if !strings.HasPrefix(authorization, "Bearer ") {
-			writeUnauthed(w)
-			return
-		}
+			if !strings.HasPrefix(authorization, "Bearer ") {
+				writeUnauthed(w)
+				return
+			}
 
-		encodedToken := strings.TrimPrefix(authorization, "Bearer ")
-		userID, err := VerifyToken(encodedToken)
-		if err != nil {
-			writeUnauthed(w)
-			return
-		}
+			encodedToken := strings.TrimPrefix(authorization, "Bearer ")
+			userID, err := VerifyToken(ao, encodedToken)
+			if err != nil {
+				writeUnauthed(w)
+				return
+			}
 
-		ctx := context.WithValue(r.Context(), AuthUserID, userID)
-		req := r.WithContext(ctx)
+			ctx := context.WithValue(r.Context(), AuthUserID, userID)
+			req := r.WithContext(ctx)
 
-		next.ServeHTTP(w, req)
-	})
+			next.ServeHTTP(w, req)
+		})
+	}
 }
 
-func CreateToken(userID int) (string, error) {
+func CreateToken(ao AuthOptions, userID int) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		CustomClaims{
 			RegisteredClaims: jwt.RegisteredClaims{
@@ -70,7 +74,7 @@ func CreateToken(userID int) (string, error) {
 				ID:        uuid.New().String(),
 			},
 		})
-	tokenString, err := token.SignedString(secretKey)
+	tokenString, err := token.SignedString(ao.SecretKey)
 	if err != nil {
 		return "", nil
 	}
@@ -78,12 +82,12 @@ func CreateToken(userID int) (string, error) {
 	return tokenString, nil
 }
 
-func VerifyToken(tokenString string) (int, error) {
+func VerifyToken(ao AuthOptions, tokenString string) (int, error) {
 	token, err := jwt.ParseWithClaims(
 		tokenString,
 		&CustomClaims{},
 		func(token *jwt.Token) (interface{}, error) {
-			return secretKey, nil
+			return ao.SecretKey, nil
 		},
 		jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Name}),
 		jwt.WithLeeway(5*time.Second),
