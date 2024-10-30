@@ -10,11 +10,8 @@ import (
 )
 
 func TestScreen(t *testing.T) {
-	s, err := NewScreen()
+	s, err := NewScreen(tcell.NewSimulationScreen("UTF-8"))
 	assert.NoError(t, err)
-
-	simulationScreen := tcell.NewSimulationScreen("UTF-8")
-	s.screen = simulationScreen
 
 	time.Sleep(100 * time.Millisecond)
 

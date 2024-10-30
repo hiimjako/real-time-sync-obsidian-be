@@ -11,6 +11,7 @@ import (
 
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
+	"github.com/gdamore/tcell/v2"
 	"github.com/hiimjako/real-time-sync-obsidian-be/internal/screen"
 	rtsync "github.com/hiimjako/real-time-sync-obsidian-be/pkg"
 	"github.com/hiimjako/real-time-sync-obsidian-be/pkg/diff"
@@ -25,7 +26,12 @@ func main() {
 	log.SetOutput(os.Stderr)
 	flag.Parse()
 
-	screen, err := screen.NewScreen()
+	s, err := tcell.NewScreen()
+	if err != nil {
+		panic(err)
+	}
+
+	screen, err := screen.NewScreen(s)
 	if err != nil {
 		log.Fatalf("error while creating screen %v", err)
 	}

@@ -19,12 +19,7 @@ type Screen struct {
 	cursorIdx int
 }
 
-func NewScreen() (Screen, error) {
-	s, err := tcell.NewScreen()
-	if err != nil {
-		return Screen{}, err
-	}
-
+func NewScreen(s tcell.Screen) (Screen, error) {
 	return Screen{
 		mu:        sync.Mutex{},
 		buffer:    []rune{},
