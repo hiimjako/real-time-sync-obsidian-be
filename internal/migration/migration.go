@@ -19,7 +19,7 @@ func Migrate(db *sql.DB) error {
 		return err
 	}
 
-	if err := goose.Up(db, filepath.Join(rp, "mirations")); err != nil {
+	if err := goose.Up(db, filepath.Join(rp, "migrations")); err != nil {
 		return err
 	}
 
@@ -47,4 +47,3 @@ func rootPath() (string, error) {
 
 	return "", fmt.Errorf("no go.mod file found in or below the current directory")
 }
-

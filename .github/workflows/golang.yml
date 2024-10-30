@@ -22,7 +22,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 2 # To retrieve the preceding commit.
+          fetch-depth: 0 
       - uses: dorny/paths-filter@v3
         id: filter
         with:
@@ -36,11 +36,10 @@ jobs:
               - '**/*.go'
               - 'go.mod'
               - 'go.sum'
+
   lint:
     needs: changes
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     if: ${{ needs.changes.outputs.files_changed == 'true' }}
     steps:
       - name: Set up Go
