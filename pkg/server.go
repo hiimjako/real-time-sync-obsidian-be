@@ -23,6 +23,7 @@ const (
 type realTimeSyncServer struct {
 	ctx    context.Context
 	cancel context.CancelFunc
+	mut    sync.Mutex
 
 	publishLimiter *rate.Limiter
 	serverMux      *http.ServeMux

@@ -83,6 +83,8 @@ func (rts *realTimeSyncServer) subscribe(w http.ResponseWriter, r *http.Request)
 }
 
 func (rts *realTimeSyncServer) processMessage(s *subscriber, data DiffChunkMessage) {
+	rts.mut.Lock()
+
 	localCopy := rts.files[data.FileId]
 	for _, d := range data.Chunks {
 		localCopy = diff.ApplyDiff(localCopy, d)
@@ -90,8 +92,9 @@ func (rts *realTimeSyncServer) processMessage(s *subscriber, data DiffChunkMessa
 	diffs := diff.ComputeDiff(rts.files[data.FileId], localCopy)
 	rts.files[data.FileId] = localCopy
 
-	rts.storageQueue <- data
+	rts.mut.Unlock()
 
+	rts.storageQueue <- data
 	rts.broadcastPublish(InternalWSMessage{
 		SenderId: s.clientId,
 		Message: DiffChunkMessage{
