@@ -20,10 +20,16 @@ const (
 	PathHttpAuth  = ApiV1Prefix + "/auth"
 )
 
+type Options struct {
+	JWTSecret []byte
+}
+
 type realTimeSyncServer struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 	mut    sync.Mutex
+
+	jwtSecret []byte
 
 	publishLimiter *rate.Limiter
 	serverMux      *http.ServeMux
@@ -35,11 +41,13 @@ type realTimeSyncServer struct {
 	db             *repository.Queries
 }
 
-func New(db *repository.Queries, s filestorage.Storage) *realTimeSyncServer {
+func New(db *repository.Queries, s filestorage.Storage, opts Options) *realTimeSyncServer {
 	ctx, cancel := context.WithCancel(context.Background())
 	rts := &realTimeSyncServer{
 		ctx:    ctx,
 		cancel: cancel,
+
+		jwtSecret: opts.JWTSecret,
 
 		serverMux:      http.NewServeMux(),
 		publishLimiter: rate.NewLimiter(rate.Every(100*time.Millisecond), 8),

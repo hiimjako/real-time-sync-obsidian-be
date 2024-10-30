@@ -28,7 +28,7 @@ func Test_fetchWorkspaceHandler(t *testing.T) {
 
 	repo := repository.New(db)
 	storageStub := filestorage.NewStorageStub()
-	server := New(repo, storageStub)
+	server := New(repo, storageStub, Options{JWTSecret: []byte("secret")})
 
 	require.NoError(t, repo.AddWorkspace(context.Background(), repository.AddWorkspaceParams{
 		Name:     "workspace1",

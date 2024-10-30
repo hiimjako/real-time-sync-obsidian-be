@@ -24,7 +24,7 @@ func Test_wsHandler(t *testing.T) {
 	require.NoError(t, err)
 
 	storageStub := filestorage.NewStorageStub()
-	handler := New(repository.New(db), storageStub)
+	handler := New(repository.New(db), storageStub, Options{JWTSecret: []byte("secret")})
 	ts := httptest.NewServer(handler)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)

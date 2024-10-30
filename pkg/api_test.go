@@ -22,7 +22,7 @@ func Test_createFileHandler(t *testing.T) {
 	require.NoError(t, err)
 
 	storageStub := filestorage.NewStorageStub()
-	server := New(repository.New(db), storageStub)
+	server := New(repository.New(db), storageStub, Options{JWTSecret: []byte("secret")})
 
 	data := File{
 		ID:   1,

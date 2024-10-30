@@ -24,7 +24,7 @@ func (rts *realTimeSyncServer) apiHandler() http.Handler {
 	stack := middleware.CreateStack(
 		middleware.Logging,
 		middleware.Cors(middleware.CorsOptions{}),
-		// middleware.IsAuthenticated(middleware.AuthOptions{SecretKey: []byte{}}),
+		// middleware.IsAuthenticated(middleware.AuthOptions{SecretKey: rts.jwtSecret}),
 	)
 
 	routerWithStack := stack(router)

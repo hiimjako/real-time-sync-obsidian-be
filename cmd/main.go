@@ -49,7 +49,9 @@ func run(ev *env.EnvVariables) error {
 	db := repository.New(dbSqlite)
 	disk := filestorage.NewDisk(ev.StorageDir)
 
-	handler := rtsync.New(db, disk)
+	handler := rtsync.New(db, disk, rtsync.Options{
+		JWTSecret: ev.JWTSecret,
+	})
 	defer handler.Close()
 
 	s := &http.Server{
