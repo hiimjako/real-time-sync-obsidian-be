@@ -30,9 +30,11 @@ func Test_wsHandler(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 
 	url := strings.Replace(ts.URL, "http", "ws", 1) + PathWebSocket
+	//nolint:bodyclose
 	sender, _, err := websocket.Dial(ctx, url, nil)
 	require.NoError(t, err)
 
+	//nolint:bodyclose
 	reciver, _, err := websocket.Dial(ctx, url, nil)
 	require.NoError(t, err)
 
@@ -67,6 +69,7 @@ func Test_wsHandler(t *testing.T) {
 	t.Cleanup(func() {
 		cancel()
 		sender.Close(websocket.StatusNormalClosure, "")
+		reciver.Close(websocket.StatusNormalClosure, "")
 		ts.Close()
 		handler.Close()
 	})

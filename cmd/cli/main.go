@@ -31,17 +31,17 @@ func main() {
 		panic(err)
 	}
 
-	screen, err := screen.NewScreen(s)
+	scr, err := screen.NewScreen(s)
 	if err != nil {
 		log.Fatalf("error while creating screen %v", err)
 	}
 
 	errc := make(chan error, 1)
 	go func() {
-		errc <- screen.Init()
+		errc <- scr.Init()
 	}()
 
-	go pollText(&screen)
+	go pollText(&scr)
 
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, os.Interrupt)

@@ -86,7 +86,7 @@ func VerifyToken(ao AuthOptions, tokenString string) (int, error) {
 	token, err := jwt.ParseWithClaims(
 		tokenString,
 		&CustomClaims{},
-		func(token *jwt.Token) (interface{}, error) {
+		func(_ *jwt.Token) (interface{}, error) {
 			return ao.SecretKey, nil
 		},
 		jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Name}),

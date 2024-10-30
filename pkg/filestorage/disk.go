@@ -52,7 +52,7 @@ func addBytesFromFile(filePath string, start int64, str string) error {
 		return err
 	}
 
-	_, err = file.Write([]byte(str))
+	_, err = file.WriteString(str)
 	if err != nil {
 		return err
 	}

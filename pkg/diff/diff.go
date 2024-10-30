@@ -36,7 +36,7 @@ func ComputeDiff(oldText, newText string) []DiffChunk {
 				Text:     diff.Text,
 				Len:      l,
 			})
-			idx += int64(l)
+			idx += l
 		case diffmatchpatch.DiffDelete:
 			diffChunks = append(diffChunks, DiffChunk{
 				Type:     DiffRemove,

@@ -79,7 +79,6 @@ func (rts *realTimeSyncServer) subscribe(w http.ResponseWriter, r *http.Request)
 		case <-rts.ctx.Done():
 			return nil
 		}
-
 	}
 }
 

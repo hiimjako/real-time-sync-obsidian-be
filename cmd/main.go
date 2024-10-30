@@ -20,18 +20,18 @@ import (
 )
 
 func main() {
-	env := env.LoadEnv()
+	ev := env.LoadEnv()
 
-	err := run(env)
+	err := run(ev)
 	if err != nil {
 		log.Fatal(err)
 	}
 }
 
-func run(env *env.EnvVariables) error {
+func run(ev *env.EnvVariables) error {
 	log.Printf("running migrations")
 
-	dbSqlite, err := sql.Open("sqlite3", env.SqliteFilepath)
+	dbSqlite, err := sql.Open("sqlite3", ev.SqliteFilepath)
 	if err != nil {
 		return err
 	}
@@ -40,14 +40,14 @@ func run(env *env.EnvVariables) error {
 		return err
 	}
 
-	l, err := net.Listen("tcp", net.JoinHostPort(env.Host, env.Port))
+	l, err := net.Listen("tcp", net.JoinHostPort(ev.Host, ev.Port))
 	if err != nil {
 		return err
 	}
 	log.Printf("listening on ws://%v", l.Addr())
 
 	db := repository.New(dbSqlite)
-	disk := filestorage.NewDisk(env.StorageDir)
+	disk := filestorage.NewDisk(ev.StorageDir)
 
 	handler := rtsync.New(db, disk)
 	defer handler.Close()
