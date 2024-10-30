@@ -23,3 +23,23 @@ func (q *Queries) AddWorkspace(ctx context.Context, arg AddWorkspaceParams) erro
 	_, err := q.db.ExecContext(ctx, addWorkspace, arg.Name, arg.Password)
 	return err
 }
+
+const fetchWorkspace = `-- name: FetchWorkspace :one
+SELECT id, name, password 
+FROM workspaces
+WHERE name = ?
+LIMIT 1
+`
+
+type FetchWorkspaceRow struct {
+	ID       int64  `json:"id"`
+	Name     string `json:"name"`
+	Password string `json:"password"`
+}
+
+func (q *Queries) FetchWorkspace(ctx context.Context, name string) (FetchWorkspaceRow, error) {
+	row := q.db.QueryRowContext(ctx, fetchWorkspace, name)
+	var i FetchWorkspaceRow
+	err := row.Scan(&i.ID, &i.Name, &i.Password)
+	return i, err
+}

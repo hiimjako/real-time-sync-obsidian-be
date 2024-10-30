@@ -13,6 +13,11 @@ type WorkspaceCredentials struct {
 	Password string `json:"password"`
 }
 
+const (
+	ErrIncorrectPassword = "incorrect password"
+	ErrWorkspaceNotFound = "workspace not found"
+)
+
 func (rts *realTimeSyncServer) authHandler() http.Handler {
 	router := http.NewServeMux()
 	router.HandleFunc("POST /login", rts.fetchWorkspaceHandler)
@@ -34,8 +39,19 @@ func (rts *realTimeSyncServer) fetchWorkspaceHandler(w http.ResponseWriter, r *h
 	}
 
 	var data WorkspaceCredentials
-	if err = json.Unmarshal(body, &data); err != nil {
+	if err := json.Unmarshal(body, &data); err != nil {
 		http.Error(w, "error parsing JSON", http.StatusBadRequest)
+		return
+	}
+
+	workspace, err := rts.db.FetchWorkspace(r.Context(), data.Name)
+	if err != nil {
+		http.Error(w, ErrWorkspaceNotFound, http.StatusNotFound)
+		return
+	}
+
+	if workspace.Password != data.Password {
+		http.Error(w, ErrIncorrectPassword, http.StatusUnauthorized)
 		return
 	}
 
