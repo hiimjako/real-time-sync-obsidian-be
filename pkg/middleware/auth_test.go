@@ -13,7 +13,7 @@ import (
 func TestIsAuthenticated(t *testing.T) {
 	ao := AuthOptions{SecretKey: []byte("secret-key")}
 
-	createToken := func(workspaceID int) string {
+	createToken := func(workspaceID int64) string {
 		token, err := CreateToken(ao, workspaceID)
 		require.NoError(t, err)
 		require.NotEmpty(t, token)
@@ -24,7 +24,7 @@ func TestIsAuthenticated(t *testing.T) {
 		name                string
 		authHeader          string
 		expectedStatus      int
-		expectedWorkspaceID int
+		expectedWorkspaceID int64
 	}{
 		{"No Auth Header", "", http.StatusUnauthorized, 0},
 		{"Invalid Token", "Bearer invalidToken", http.StatusUnauthorized, 0},
@@ -54,8 +54,8 @@ func TestIsAuthenticated(t *testing.T) {
 }
 
 func TestWorkspaceIDFromCtx(t *testing.T) {
-	expectedWorkspaceID := 10
-	ctx := context.WithValue(context.Background(), AuthWorkspaceID, 10)
+	expectedWorkspaceID := int64(10)
+	ctx := context.WithValue(context.Background(), AuthWorkspaceID, int64(10))
 	workspaceID := WorkspaceIDFromCtx(ctx)
 
 	assert.Equal(t, expectedWorkspaceID, workspaceID)

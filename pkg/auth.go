@@ -13,6 +13,10 @@ type WorkspaceCredentials struct {
 	Password string `json:"password"`
 }
 
+type LoginResponse struct {
+	Token string `json:"token"`
+}
+
 const (
 	ErrIncorrectPassword = "incorrect password"
 	ErrWorkspaceNotFound = "workspace not found"
@@ -55,12 +59,18 @@ func (rts *realTimeSyncServer) fetchWorkspaceHandler(w http.ResponseWriter, r *h
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	response := Response{
-		Status: "success",
+	token, err := middleware.CreateToken(middleware.AuthOptions{SecretKey: []byte{}}, workspace.ID)
+	if err != nil {
+		http.Error(w, "error while creating auth token", http.StatusInternalServerError)
+		return
 	}
 
+	response := LoginResponse{
+		Token: token,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		http.Error(w, "error reading request body", http.StatusInternalServerError)
 		return

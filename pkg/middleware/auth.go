@@ -62,7 +62,7 @@ func IsAuthenticated(ao AuthOptions) func(next http.Handler) http.Handler {
 	}
 }
 
-func CreateToken(ao AuthOptions, workspaceID int) (string, error) {
+func CreateToken(ao AuthOptions, workspaceID int64) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		CustomClaims{
 			RegisteredClaims: jwt.RegisteredClaims{
@@ -70,7 +70,7 @@ func CreateToken(ao AuthOptions, workspaceID int) (string, error) {
 				IssuedAt:  jwt.NewNumericDate(time.Now()),
 				NotBefore: jwt.NewNumericDate(time.Now()),
 				Issuer:    Issuer,
-				Subject:   strconv.Itoa(workspaceID),
+				Subject:   strconv.Itoa(int(workspaceID)),
 				ID:        uuid.New().String(),
 			},
 		})
@@ -82,7 +82,7 @@ func CreateToken(ao AuthOptions, workspaceID int) (string, error) {
 	return tokenString, nil
 }
 
-func VerifyToken(ao AuthOptions, tokenString string) (int, error) {
+func VerifyToken(ao AuthOptions, tokenString string) (int64, error) {
 	token, err := jwt.ParseWithClaims(
 		tokenString,
 		&CustomClaims{},
@@ -107,9 +107,9 @@ func VerifyToken(ao AuthOptions, tokenString string) (int, error) {
 		return 0, fmt.Errorf("invalid sub")
 	}
 
-	return sub, nil
+	return int64(sub), nil
 }
 
-func WorkspaceIDFromCtx(ctx context.Context) int {
-	return ctx.Value(AuthWorkspaceID).(int)
+func WorkspaceIDFromCtx(ctx context.Context) int64 {
+	return ctx.Value(AuthWorkspaceID).(int64)
 }

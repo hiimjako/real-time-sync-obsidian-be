@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -41,7 +42,11 @@ func Test_fetchWorkspaceHandler(t *testing.T) {
 		}
 		code, res, _ := sendRequest(t, server, data)
 		assert.Equal(t, http.StatusOK, code)
-		assert.Equal(t, Response{Status: "success"}, res)
+
+		jwtRegex := `^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$`
+		matched, err := regexp.MatchString(jwtRegex, res.Token)
+		assert.NoError(t, err)
+		assert.True(t, matched)
 	})
 
 	t.Run("wrong password", func(t *testing.T) {
@@ -71,7 +76,7 @@ func Test_fetchWorkspaceHandler(t *testing.T) {
 	})
 }
 
-func sendRequest(t *testing.T, server *realTimeSyncServer, data WorkspaceCredentials) (int, Response, string) {
+func sendRequest(t *testing.T, server *realTimeSyncServer, data WorkspaceCredentials) (int, LoginResponse, string) {
 	reqBody, err := json.Marshal(data)
 	require.NoError(t, err)
 	req := httptest.NewRequest(http.MethodPost, PathHttpAuth+"/login", bytes.NewBuffer(reqBody))
@@ -82,12 +87,14 @@ func sendRequest(t *testing.T, server *realTimeSyncServer, data WorkspaceCredent
 	body, err := io.ReadAll(res.Body)
 	require.NoError(t, err)
 
+	var resBody LoginResponse
+
 	if res.Code == http.StatusOK {
-		var resBody Response
 		err = json.Unmarshal(body, &resBody)
 		assert.NoError(t, err)
 		return res.Code, resBody, ""
 	}
 
-	return res.Code, Response{}, strings.Trim(string(body), "\n")
+	errStr := strings.Trim(string(body), "\n")
+	return res.Code, resBody, errStr
 }
