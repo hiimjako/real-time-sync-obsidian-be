@@ -1,5 +1,4 @@
 -- name: AddFile :exec
-INSERT INTO files (id, name, path)
-VALUES (?, ?, ?);
-
+INSERT INTO files (disk_path, virtual_path, mime_type, checksum, workspace_id)
+VALUES (?, ?, ?, ?, ?);
 

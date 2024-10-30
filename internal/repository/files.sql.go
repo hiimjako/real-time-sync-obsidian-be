@@ -7,20 +7,29 @@ package repository
 
 import (
 	"context"
+	"database/sql"
 )
 
 const addFile = `-- name: AddFile :exec
-INSERT INTO files (id, name, path)
-VALUES (?, ?, ?)
+INSERT INTO files (disk_path, virtual_path, mime_type, checksum, workspace_id)
+VALUES (?, ?, ?, ?, ?)
 `
 
 type AddFileParams struct {
-	ID   int64  `json:"id"`
-	Name string `json:"name"`
-	Path string `json:"path"`
+	DiskPath    string         `json:"disk_path"`
+	VirtualPath string         `json:"virtual_path"`
+	MimeType    sql.NullString `json:"mime_type"`
+	Checksum    sql.NullString `json:"checksum"`
+	WorkspaceID sql.NullInt64  `json:"workspace_id"`
 }
 
 func (q *Queries) AddFile(ctx context.Context, arg AddFileParams) error {
-	_, err := q.db.ExecContext(ctx, addFile, arg.ID, arg.Name, arg.Path)
+	_, err := q.db.ExecContext(ctx, addFile,
+		arg.DiskPath,
+		arg.VirtualPath,
+		arg.MimeType,
+		arg.Checksum,
+		arg.WorkspaceID,
+	)
 	return err
 }

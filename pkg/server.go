@@ -17,6 +17,7 @@ const (
 
 	PathWebSocket = ApiV1Prefix + "/sync"
 	PathHttpApi   = ApiV1Prefix + "/api"
+	PathHttpAuth  = ApiV1Prefix + "/auth"
 )
 
 type realTimeSyncServer struct {
@@ -48,8 +49,8 @@ func New(db *repository.Queries, s filestorage.Storage) *realTimeSyncServer {
 		db:             db,
 	}
 
-	routerWithStripPrefix := http.StripPrefix(PathHttpApi, rts.apiHandler())
-	rts.serverMux.Handle(PathHttpApi+"/", routerWithStripPrefix)
+	rts.serverMux.Handle(PathHttpApi+"/", http.StripPrefix(PathHttpApi, rts.apiHandler()))
+	rts.serverMux.Handle(PathHttpAuth+"/", http.StripPrefix(PathHttpAuth, rts.authHandler()))
 	rts.serverMux.HandleFunc(PathWebSocket, rts.wsHandler)
 
 	go rts.persistChunks()

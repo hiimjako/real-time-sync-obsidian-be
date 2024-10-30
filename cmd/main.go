@@ -8,14 +8,13 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"time"
 
 	"github.com/hiimjako/real-time-sync-obsidian-be/internal/env"
+	"github.com/hiimjako/real-time-sync-obsidian-be/internal/migration"
 	"github.com/hiimjako/real-time-sync-obsidian-be/internal/repository"
 	rtsync "github.com/hiimjako/real-time-sync-obsidian-be/pkg"
 	"github.com/hiimjako/real-time-sync-obsidian-be/pkg/filestorage"
-	"github.com/pressly/goose"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -37,7 +36,7 @@ func run(env *env.EnvVariables) error {
 		return err
 	}
 
-	if err := migrate(dbSqlite); err != nil {
+	if err := migration.Migrate(dbSqlite); err != nil {
 		return err
 	}
 
@@ -76,16 +75,4 @@ func run(env *env.EnvVariables) error {
 	defer cancel()
 
 	return s.Shutdown(ctx)
-}
-
-func migrate(db *sql.DB) error {
-	if err := goose.SetDialect("sqlite3"); err != nil {
-		return err
-	}
-
-	if err := goose.Up(db, filepath.Join(".", "migrations")); err != nil {
-		return err
-	}
-
-	return nil
 }

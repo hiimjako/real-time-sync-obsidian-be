@@ -9,9 +9,20 @@ import (
 )
 
 type File struct {
+	ID          int64          `json:"id"`
+	DiskPath    string         `json:"disk_path"`
+	VirtualPath string         `json:"virtual_path"`
+	MimeType    sql.NullString `json:"mime_type"`
+	Checksum    sql.NullString `json:"checksum"`
+	CreatedAt   sql.NullTime   `json:"created_at"`
+	UpdatedAt   sql.NullTime   `json:"updated_at"`
+	WorkspaceID sql.NullInt64  `json:"workspace_id"`
+}
+
+type Workspace struct {
 	ID        int64        `json:"id"`
 	Name      string       `json:"name"`
-	Path      string       `json:"path"`
+	Password  string       `json:"password"`
 	CreatedAt sql.NullTime `json:"created_at"`
 	UpdatedAt sql.NullTime `json:"updated_at"`
 }
