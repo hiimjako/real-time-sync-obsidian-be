@@ -46,7 +46,7 @@ func Test_createFileHandler(t *testing.T) {
 		Path:        data.Path,
 		VirtualPath: virtualPath,
 		MimeType:    "text/plain; charset=utf-8",
-		Hash:        filestorage.CalculateHash(data.Content),
+		Hash:        filestorage.GenerateHash(data.Content),
 		CreatedAt:   body.CreatedAt,
 		UpdatedAt:   body.UpdatedAt,
 		WorkspaceID: workspaceID,
@@ -61,7 +61,7 @@ func Test_createFileHandler(t *testing.T) {
 		Path:        data.Path,
 		VirtualPath: virtualPath,
 		MimeType:    "text/plain; charset=utf-8",
-		Hash:        filestorage.CalculateHash(data.Content),
+		Hash:        filestorage.GenerateHash(data.Content),
 		CreatedAt:   files[0].CreatedAt,
 		UpdatedAt:   files[0].UpdatedAt,
 	}, files[0])

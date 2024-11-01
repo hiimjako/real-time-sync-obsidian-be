@@ -59,7 +59,7 @@ func (rts *realTimeSyncServer) createFileHandler(w http.ResponseWriter, r *http.
 		Path:        data.Path,
 		VirtualPath: virtualPath,
 		MimeType:    mimeType,
-		Hash:        filestorage.CalculateHash(data.Content),
+		Hash:        filestorage.GenerateHash(data.Content),
 		WorkspaceID: workspaceID,
 	})
 

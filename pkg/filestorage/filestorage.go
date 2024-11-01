@@ -14,7 +14,7 @@ type Storage interface {
 	CreateObject(string, []byte) (string, error)
 }
 
-func CalculateHash(content []byte) string {
+func GenerateHash(content []byte) string {
 	hash := sha256.New()
 	hash.Write(content)
 	checksum := fmt.Sprintf("%x", hash.Sum(nil))
