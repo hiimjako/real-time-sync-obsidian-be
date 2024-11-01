@@ -14,6 +14,8 @@ type Storage interface {
 	CreateObject([]byte) (string, error)
 	// DeleteObject deletes an object
 	DeleteObject(string) error
+	// ReadObject reads an object
+	ReadObject(string) ([]byte, error)
 }
 
 func GenerateHash(content []byte) string {

@@ -23,3 +23,8 @@ func (m *MockFileStorage) DeleteObject(p string) error {
 	args := m.Called(p)
 	return args.Error(0)
 }
+
+func (m *MockFileStorage) ReadObject(p string) ([]byte, error) {
+	args := m.Called(p)
+	return args.Get(0).([]byte), args.Error(1)
+}

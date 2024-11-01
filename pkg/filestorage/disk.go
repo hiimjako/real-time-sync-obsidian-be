@@ -61,6 +61,10 @@ func (d Disk) DeleteObject(diskPath string) error {
 	return err
 }
 
+func (d Disk) ReadObject(diskPath string) ([]byte, error) {
+	return os.ReadFile(diskPath)
+}
+
 func (d Disk) PersistChunk(filePath string, chunk diff.DiffChunk) error {
 	filePath = path.Join(d.basepath, filePath)
 	switch chunk.Type {

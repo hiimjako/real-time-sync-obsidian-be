@@ -11,13 +11,19 @@ import (
 	"github.com/hiimjako/real-time-sync-obsidian-be/pkg/middleware"
 )
 
-type File struct {
+type CreateFileBody struct {
 	Path    string `json:"path"`
+	Content []byte `json:"content"`
+}
+
+type FileWithContent struct {
+	repository.File
 	Content []byte `json:"content"`
 }
 
 const (
 	ErrInvalidFile     = "impossilbe to create file"
+	ErrReadingFile     = "impossilbe to read file"
 	ErrNotExistingFile = "not existing file"
 )
 
@@ -55,6 +61,45 @@ func (rts *realTimeSyncServer) listFilesHandler(w http.ResponseWriter, r *http.R
 	}
 }
 
+func (rts *realTimeSyncServer) fetchFileHandler(w http.ResponseWriter, r *http.Request) {
+	fileId, err := strconv.Atoi(r.PathValue("id"))
+
+	if fileId == 0 || err != nil {
+		http.Error(w, "invalid file id", http.StatusBadRequest)
+		return
+	}
+
+	file, err := rts.db.FetchFile(r.Context(), int64(fileId))
+	if err != nil {
+		http.Error(w, ErrNotExistingFile, http.StatusNotFound)
+		return
+	}
+
+	workspaceID := middleware.WorkspaceIDFromCtx(r.Context())
+	if file.WorkspaceID != workspaceID {
+		http.Error(w, ErrNotExistingFile, http.StatusNotFound)
+		return
+	}
+
+	fileContent, err := rts.storage.ReadObject(file.DiskPath)
+	if err != nil {
+		http.Error(w, ErrReadingFile, http.StatusInternalServerError)
+		return
+	}
+
+	fileWithContent := FileWithContent{
+		File:    file,
+		Content: fileContent,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(fileWithContent); err != nil {
+		http.Error(w, "error reading request body", http.StatusInternalServerError)
+		return
+	}
+}
+
 func (rts *realTimeSyncServer) createFileHandler(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -62,7 +107,7 @@ func (rts *realTimeSyncServer) createFileHandler(w http.ResponseWriter, r *http.
 		return
 	}
 
-	var data File
+	var data CreateFileBody
 	if err = json.Unmarshal(body, &data); err != nil {
 		http.Error(w, "error parsing JSON", http.StatusBadRequest)
 		return
