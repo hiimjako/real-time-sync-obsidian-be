@@ -46,7 +46,7 @@ func (rts *realTimeSyncServer) createFileHandler(w http.ResponseWriter, r *http.
 		return
 	}
 
-	virtualPath, err := rts.storage.CreateObject(data.Path, data.Content)
+	virtualPath, err := rts.storage.CreateObject(data.Content)
 	if err != nil {
 		http.Error(w, ErrInvalidFile, http.StatusInternalServerError)
 		return

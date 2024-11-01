@@ -10,8 +10,8 @@ import (
 type Storage interface {
 	// PersistChunk adds a chunk to the provided filepath
 	PersistChunk(string, diff.DiffChunk) error
-	// CreateObject creates an object to the provided filepath
-	CreateObject(string, []byte) (string, error)
+	// CreateObject creates an object and returns the path
+	CreateObject([]byte) (string, error)
 }
 
 func GenerateHash(content []byte) string {

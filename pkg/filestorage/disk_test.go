@@ -56,3 +56,17 @@ func TestPersistChunk(t *testing.T) {
 		})
 	}
 }
+
+func TestCreateObject(t *testing.T) {
+	dir := t.TempDir()
+	d := NewDisk(dir)
+
+	content := []byte("bar")
+	p, err := d.CreateObject(content)
+	assert.NoError(t, err)
+
+	fileContent, err := os.ReadFile(p)
+	assert.NoError(t, err)
+
+	assert.Equal(t, content, fileContent)
+}

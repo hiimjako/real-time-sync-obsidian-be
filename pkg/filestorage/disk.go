@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/google/uuid"
@@ -21,16 +22,21 @@ func NewDisk(basepath string) Disk {
 	}
 }
 
-func (d Disk) CreateObject(filePath string, content []byte) (string, error) {
+func (d Disk) CreateObject(content []byte) (string, error) {
 	id := uuid.New().String()
-	virtualPath := path.Join(strings.Split(id, "-")...)
+	virtualPath := path.Join(d.basepath, path.Join(strings.Split(id, "-")...))
 
 	_, err := os.Stat(virtualPath)
 	if os.IsExist(err) {
 		return "", err
 	}
 
-	file, err := os.Create(filePath)
+	dir := filepath.Dir(virtualPath)
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		return "", err
+	}
+
+	file, err := os.Create(virtualPath)
 	if err != nil {
 		return "", nil
 	}

@@ -29,7 +29,7 @@ func Test_createFileHandler(t *testing.T) {
 	}
 
 	virtualPath := "foo/bar"
-	mockFileStorage.On("CreateObject", data.Path, data.Content).Return(virtualPath, nil)
+	mockFileStorage.On("CreateObject", data.Content).Return(virtualPath, nil)
 
 	res, body := testutils.DoRequest[repository.File](
 		t,
@@ -67,5 +67,5 @@ func Test_createFileHandler(t *testing.T) {
 	}, files[0])
 
 	// check mock assertions
-	mockFileStorage.AssertCalled(t, "CreateObject", data.Path, data.Content)
+	mockFileStorage.AssertCalled(t, "CreateObject", data.Content)
 }
