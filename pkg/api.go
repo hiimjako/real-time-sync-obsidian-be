@@ -15,10 +15,6 @@ type File struct {
 	Content []byte `json:"content"`
 }
 
-type Response struct {
-	Status string `json:"status"`
-}
-
 const (
 	ErrInvalidFile = "impossilbe to create file"
 )
@@ -59,24 +55,22 @@ func (rts *realTimeSyncServer) createFileHandler(w http.ResponseWriter, r *http.
 	mimeType := http.DetectContentType(data.Content)
 	workspaceID := middleware.WorkspaceIDFromCtx(r.Context())
 
-	if err := rts.db.AddFile(r.Context(), repository.AddFileParams{
+	file, err := rts.db.AddFile(r.Context(), repository.AddFileParams{
 		Path:        data.Path,
 		VirtualPath: virtualPath,
 		MimeType:    mimeType,
 		Hash:        filestorage.CalculateHash(data.Content),
 		WorkspaceID: workspaceID,
-	}); err != nil {
+	})
+
+	if err != nil {
 		http.Error(w, ErrInvalidFile, http.StatusInternalServerError)
 		return
 	}
 
-	response := Response{
-		Status: "success",
-	}
-
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	if err := json.NewEncoder(w).Encode(response); err != nil {
+	if err := json.NewEncoder(w).Encode(file); err != nil {
 		http.Error(w, "error reading request body", http.StatusInternalServerError)
 		return
 	}

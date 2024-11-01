@@ -10,9 +10,10 @@ import (
 	"database/sql"
 )
 
-const addFile = `-- name: AddFile :exec
+const addFile = `-- name: AddFile :one
 INSERT INTO files (path, virtual_path, mime_type, hash, workspace_id)
 VALUES (?, ?, ?, ?, ?)
+RETURNING id, path, virtual_path, mime_type, hash, created_at, updated_at, workspace_id
 `
 
 type AddFileParams struct {
@@ -23,15 +24,26 @@ type AddFileParams struct {
 	WorkspaceID int64  `json:"workspace_id"`
 }
 
-func (q *Queries) AddFile(ctx context.Context, arg AddFileParams) error {
-	_, err := q.db.ExecContext(ctx, addFile,
+func (q *Queries) AddFile(ctx context.Context, arg AddFileParams) (File, error) {
+	row := q.db.QueryRowContext(ctx, addFile,
 		arg.Path,
 		arg.VirtualPath,
 		arg.MimeType,
 		arg.Hash,
 		arg.WorkspaceID,
 	)
-	return err
+	var i File
+	err := row.Scan(
+		&i.ID,
+		&i.Path,
+		&i.VirtualPath,
+		&i.MimeType,
+		&i.Hash,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.WorkspaceID,
+	)
+	return i, err
 }
 
 const fetchFile = `-- name: FetchFile :one

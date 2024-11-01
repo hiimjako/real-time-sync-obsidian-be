@@ -64,7 +64,11 @@ func DoRequest[T any](
 
 	// If T is string, return the body as a string
 	if str, ok := any(&resBody).(*string); ok {
-		*str = strings.Trim(string(body), "\n")
+		if body == nil {
+			*str = ""
+		} else {
+			*str = strings.Trim(string(body), "\n")
+		}
 	} else {
 		err = json.Unmarshal(body, &resBody)
 		assert.NoError(t, err)

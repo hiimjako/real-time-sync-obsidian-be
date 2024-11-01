@@ -1,6 +1,7 @@
--- name: AddFile :exec
+-- name: AddFile :one
 INSERT INTO files (path, virtual_path, mime_type, hash, workspace_id)
-VALUES (?, ?, ?, ?, ?);
+VALUES (?, ?, ?, ?, ?)
+RETURNING *;
 
 -- name: FetchFile :one
 SELECT path, virtual_path, mime_type, hash, created_at, updated_at, workspace_id 

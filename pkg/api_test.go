@@ -20,6 +20,8 @@ func Test_createFileHandler(t *testing.T) {
 	options := Options{JWTSecret: []byte("secret")}
 	server := New(repo, mockFileStorage, options)
 
+	t.Cleanup(func() { server.Close() })
+
 	workspaceID := int64(10)
 	data := File{
 		Path:    "/home/file",
@@ -29,7 +31,7 @@ func Test_createFileHandler(t *testing.T) {
 	virtualPath := "foo/bar"
 	mockFileStorage.On("CreateObject", data.Path, data.Content).Return(virtualPath, nil)
 
-	res, body := testutils.DoRequest[Response](
+	res, body := testutils.DoRequest[repository.File](
 		t,
 		server,
 		PathHttpApi+"/file",
@@ -37,15 +39,26 @@ func Test_createFileHandler(t *testing.T) {
 		testutils.WithAuthHeader(options.JWTSecret, workspaceID),
 	)
 
+	// check response
 	assert.Equal(t, 201, res.Code)
-	assert.Equal(t, Response{Status: "success"}, body)
+	assert.Equal(t, repository.File{
+		ID:          1,
+		Path:        data.Path,
+		VirtualPath: virtualPath,
+		MimeType:    "text/plain; charset=utf-8",
+		Hash:        filestorage.CalculateHash(data.Content),
+		CreatedAt:   body.CreatedAt,
+		UpdatedAt:   body.UpdatedAt,
+		WorkspaceID: workspaceID,
+	}, body)
 
+	// check db
 	files, err := repo.FetchWorkspaceFiles(context.Background(), workspaceID)
 	assert.NoError(t, err)
 	assert.Len(t, files, 1)
 	assert.Equal(t, repository.FetchWorkspaceFilesRow{
-		ID:          files[0].ID,
-		Path:        "/home/file",
+		ID:          1,
+		Path:        data.Path,
 		VirtualPath: virtualPath,
 		MimeType:    "text/plain; charset=utf-8",
 		Hash:        filestorage.CalculateHash(data.Content),
@@ -53,9 +66,6 @@ func Test_createFileHandler(t *testing.T) {
 		UpdatedAt:   files[0].UpdatedAt,
 	}, files[0])
 
+	// check mock assertions
 	mockFileStorage.AssertCalled(t, "CreateObject", data.Path, data.Content)
-
-	t.Cleanup(func() {
-		server.Close()
-	})
 }
