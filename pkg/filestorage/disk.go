@@ -52,7 +52,7 @@ func (d Disk) CreateObject(content []byte) (string, error) {
 
 func (d Disk) DeleteObject(diskPath string) error {
 	_, err := os.Stat(diskPath)
-	if !os.IsExist(err) {
+	if os.IsNotExist(err) {
 		return nil
 	}
 

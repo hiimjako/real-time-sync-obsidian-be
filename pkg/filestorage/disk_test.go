@@ -70,3 +70,35 @@ func TestCreateObject(t *testing.T) {
 
 	assert.Equal(t, content, fileContent)
 }
+
+func TestDeleteObject(t *testing.T) {
+	dir := t.TempDir()
+	d := NewDisk(dir)
+
+	content := []byte("bar")
+	p, err := d.CreateObject(content)
+	assert.NoError(t, err)
+
+	_, err = os.Stat(p)
+	assert.NoError(t, err)
+
+	err = d.DeleteObject(p)
+	assert.NoError(t, err)
+
+	_, err = os.Stat(p)
+	assert.True(t, os.IsNotExist(err))
+}
+
+func TestReadObject(t *testing.T) {
+	dir := t.TempDir()
+	d := NewDisk(dir)
+
+	content := []byte("bar")
+	p, err := d.CreateObject(content)
+	assert.NoError(t, err)
+
+	fileContent, err := d.ReadObject(p)
+	assert.NoError(t, err)
+
+	assert.Equal(t, content, fileContent)
+}
