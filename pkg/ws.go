@@ -124,3 +124,32 @@ func (rts *realTimeSyncServer) broadcastPublish(msg InternalWSMessage) {
 		}
 	}
 }
+
+func (rts *realTimeSyncServer) writeChunks() {
+	for {
+		select {
+		case data := <-rts.storageQueue:
+			for _, d := range data.Chunks {
+				err := rts.storage.PersistChunk(data.FileId, d)
+				if err != nil {
+					log.Println(err)
+				}
+			}
+		case <-rts.ctx.Done():
+			return
+		}
+	}
+}
+
+func (rts *realTimeSyncServer) addSubscriber(s *subscriber) {
+	rts.subscribersMu.Lock()
+	rts.subscribers[s] = struct{}{}
+	rts.subscribersMu.Unlock()
+}
+
+// deleteSubscriber deletes the given subscriber.
+func (rts *realTimeSyncServer) deleteSubscriber(s *subscriber) {
+	rts.subscribersMu.Lock()
+	delete(rts.subscribers, s)
+	rts.subscribersMu.Unlock()
+}

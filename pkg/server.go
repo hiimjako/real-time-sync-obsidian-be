@@ -2,7 +2,6 @@ package rtsync
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"sync"
 	"time"
@@ -62,7 +61,7 @@ func New(db *repository.Queries, s filestorage.Storage, opts Options) *realTimeS
 	rts.serverMux.Handle(PathHttpAuth+"/", http.StripPrefix(PathHttpAuth, rts.authHandler()))
 	rts.serverMux.HandleFunc(PathWebSocket, rts.wsHandler)
 
-	go rts.persistChunks()
+	go rts.writeChunks()
 
 	return rts
 }
@@ -76,33 +75,4 @@ func (rts *realTimeSyncServer) Close() error {
 
 func (rts *realTimeSyncServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	rts.serverMux.ServeHTTP(w, r)
-}
-
-func (rts *realTimeSyncServer) persistChunks() {
-	for {
-		select {
-		case data := <-rts.storageQueue:
-			for _, d := range data.Chunks {
-				err := rts.storage.PersistChunk(data.FileId, d)
-				if err != nil {
-					log.Println(err)
-				}
-			}
-		case <-rts.ctx.Done():
-			return
-		}
-	}
-}
-
-func (rts *realTimeSyncServer) addSubscriber(s *subscriber) {
-	rts.subscribersMu.Lock()
-	rts.subscribers[s] = struct{}{}
-	rts.subscribersMu.Unlock()
-}
-
-// deleteSubscriber deletes the given subscriber.
-func (rts *realTimeSyncServer) deleteSubscriber(s *subscriber) {
-	rts.subscribersMu.Lock()
-	delete(rts.subscribers, s)
-	rts.subscribersMu.Unlock()
 }
