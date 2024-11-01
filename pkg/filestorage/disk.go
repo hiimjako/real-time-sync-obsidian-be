@@ -24,7 +24,8 @@ func NewDisk(basepath string) Disk {
 
 func (d Disk) CreateObject(content []byte) (string, error) {
 	id := uuid.New().String()
-	diskPath := path.Join(d.basepath, path.Join(strings.Split(id, "-")...))
+	relativePath := path.Join(strings.Split(id, "-")...)
+	diskPath := path.Join(d.basepath, relativePath)
 
 	_, err := os.Stat(diskPath)
 	if os.IsExist(err) {
@@ -47,10 +48,12 @@ func (d Disk) CreateObject(content []byte) (string, error) {
 		return "", nil
 	}
 
-	return diskPath, nil
+	return relativePath, nil
 }
 
-func (d Disk) DeleteObject(diskPath string) error {
+func (d Disk) DeleteObject(relativePath string) error {
+	diskPath := path.Join(d.basepath, relativePath)
+
 	_, err := os.Stat(diskPath)
 	if os.IsNotExist(err) {
 		return nil
@@ -61,17 +64,26 @@ func (d Disk) DeleteObject(diskPath string) error {
 	return err
 }
 
-func (d Disk) ReadObject(diskPath string) ([]byte, error) {
+func (d Disk) ReadObject(relativePath string) ([]byte, error) {
+	diskPath := path.Join(d.basepath, relativePath)
+
 	return os.ReadFile(diskPath)
 }
 
-func (d Disk) PersistChunk(filePath string, chunk diff.DiffChunk) error {
-	filePath = path.Join(d.basepath, filePath)
+func (d Disk) PersistChunk(relativePath string, chunk diff.DiffChunk) error {
+	diskPath := path.Join(d.basepath, relativePath)
+
+	_, err := os.Stat(diskPath)
+	if os.IsNotExist(err) {
+		return err
+	}
+
+	relativePath = path.Join(d.basepath, relativePath)
 	switch chunk.Type {
 	case diff.DiffAdd:
-		return addBytesToFile(filePath, chunk.Position, chunk.Text)
+		return addBytesToFile(relativePath, chunk.Position, chunk.Text)
 	case diff.DiffRemove:
-		return removeBytesFromFile(filePath, chunk.Position, chunk.Len)
+		return removeBytesFromFile(relativePath, chunk.Position, chunk.Len)
 	}
 	return fmt.Errorf("diff type %v not supported", chunk.Type)
 }

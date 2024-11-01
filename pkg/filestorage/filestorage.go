@@ -8,7 +8,8 @@ import (
 )
 
 type Storage interface {
-	// PersistChunk adds a chunk to the provided filepath
+	// PersistChunk adds a chunk to the provided filepath, it returns an error
+	// if the file doesn't exists
 	PersistChunk(string, diff.DiffChunk) error
 	// CreateObject creates an object and returns the path
 	CreateObject([]byte) (string, error)
