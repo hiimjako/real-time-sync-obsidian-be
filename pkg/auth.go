@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/hiimjako/real-time-sync-obsidian-be/pkg/middleware"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type WorkspaceCredentials struct {
@@ -54,7 +55,7 @@ func (rts *realTimeSyncServer) fetchWorkspaceHandler(w http.ResponseWriter, r *h
 		return
 	}
 
-	if workspace.Password != data.Password {
+	if err := bcrypt.CompareHashAndPassword([]byte(workspace.Password), []byte(data.Password)); err != nil {
 		http.Error(w, ErrIncorrectPassword, http.StatusUnauthorized)
 		return
 	}

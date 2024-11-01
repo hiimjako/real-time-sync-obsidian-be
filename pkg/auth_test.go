@@ -13,6 +13,7 @@ import (
 	"github.com/hiimjako/real-time-sync-obsidian-be/pkg/filestorage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/crypto/bcrypt"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -26,9 +27,12 @@ func Test_fetchWorkspaceHandler(t *testing.T) {
 	mockFileStorage := new(filestorage.MockFileStorage)
 	server := New(repo, mockFileStorage, Options{JWTSecret: []byte("secret")})
 
+	hash, err := bcrypt.GenerateFromPassword([]byte("strong_password"), bcrypt.DefaultCost)
+	require.NoError(t, err)
+
 	require.NoError(t, repo.AddWorkspace(context.Background(), repository.AddWorkspaceParams{
 		Name:     "workspace1",
-		Password: "strong_password",
+		Password: string(hash),
 	}))
 
 	const apiPath = PathHttpAuth + "/login"

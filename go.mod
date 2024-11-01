@@ -14,6 +14,7 @@ require (
 	github.com/sergi/go-diff v1.3.1
 	github.com/sethvargo/go-envconfig v1.1.0
 	github.com/stretchr/testify v1.9.0
+	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
 	golang.org/x/time v0.7.0
 )
 

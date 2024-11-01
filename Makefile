@@ -2,9 +2,9 @@
 run:
 	@go run cmd/main.go
 
-.PHONY: cli
-cli:
-	@go run cmd/cli/* 2>cli.log
+.PHONY: editor
+editor:
+	@go run cmd/editor/* 2>editor.log
 
 .PHONY: test
 test:
