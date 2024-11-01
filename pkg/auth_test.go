@@ -27,8 +27,8 @@ func Test_fetchWorkspaceHandler(t *testing.T) {
 	require.NoError(t, migration.Migrate(db))
 
 	repo := repository.New(db)
-	storageStub := filestorage.NewStorageStub()
-	server := New(repo, storageStub, Options{JWTSecret: []byte("secret")})
+	mockFileStorage := new(filestorage.MockFileStorage)
+	server := New(repo, mockFileStorage, Options{JWTSecret: []byte("secret")})
 
 	require.NoError(t, repo.AddWorkspace(context.Background(), repository.AddWorkspaceParams{
 		Name:     "workspace1",

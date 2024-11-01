@@ -9,14 +9,14 @@ import (
 )
 
 type File struct {
-	ID          int64          `json:"id"`
-	DiskPath    string         `json:"disk_path"`
-	VirtualPath string         `json:"virtual_path"`
-	MimeType    sql.NullString `json:"mime_type"`
-	Checksum    sql.NullString `json:"checksum"`
-	CreatedAt   sql.NullTime   `json:"created_at"`
-	UpdatedAt   sql.NullTime   `json:"updated_at"`
-	WorkspaceID sql.NullInt64  `json:"workspace_id"`
+	ID          int64        `json:"id"`
+	Path        string       `json:"path"`
+	VirtualPath string       `json:"virtual_path"`
+	MimeType    string       `json:"mime_type"`
+	Hash        string       `json:"hash"`
+	CreatedAt   sql.NullTime `json:"created_at"`
+	UpdatedAt   sql.NullTime `json:"updated_at"`
+	WorkspaceID int64        `json:"workspace_id"`
 }
 
 type Workspace struct {

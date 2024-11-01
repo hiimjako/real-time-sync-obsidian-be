@@ -5,7 +5,9 @@ import (
 	"io"
 	"os"
 	"path"
+	"strings"
 
+	"github.com/google/uuid"
 	"github.com/hiimjako/real-time-sync-obsidian-be/pkg/diff"
 )
 
@@ -17,6 +19,29 @@ func NewDisk(basepath string) Disk {
 	return Disk{
 		basepath: basepath,
 	}
+}
+
+func (d Disk) CreateObject(filePath string, content []byte) (string, error) {
+	id := uuid.New().String()
+	virtualPath := path.Join(strings.Split(id, "-")...)
+
+	_, err := os.Stat(virtualPath)
+	if os.IsExist(err) {
+		return "", err
+	}
+
+	file, err := os.Create(filePath)
+	if err != nil {
+		return "", nil
+	}
+	defer file.Close()
+
+	_, err = file.Write(content)
+	if err != nil {
+		return "", nil
+	}
+
+	return virtualPath, nil
 }
 
 func (d Disk) PersistChunk(filePath string, chunk diff.DiffChunk) error {

@@ -11,25 +11,104 @@ import (
 )
 
 const addFile = `-- name: AddFile :exec
-INSERT INTO files (disk_path, virtual_path, mime_type, checksum, workspace_id)
+INSERT INTO files (path, virtual_path, mime_type, hash, workspace_id)
 VALUES (?, ?, ?, ?, ?)
 `
 
 type AddFileParams struct {
-	DiskPath    string         `json:"disk_path"`
-	VirtualPath string         `json:"virtual_path"`
-	MimeType    sql.NullString `json:"mime_type"`
-	Checksum    sql.NullString `json:"checksum"`
-	WorkspaceID sql.NullInt64  `json:"workspace_id"`
+	Path        string `json:"path"`
+	VirtualPath string `json:"virtual_path"`
+	MimeType    string `json:"mime_type"`
+	Hash        string `json:"hash"`
+	WorkspaceID int64  `json:"workspace_id"`
 }
 
 func (q *Queries) AddFile(ctx context.Context, arg AddFileParams) error {
 	_, err := q.db.ExecContext(ctx, addFile,
-		arg.DiskPath,
+		arg.Path,
 		arg.VirtualPath,
 		arg.MimeType,
-		arg.Checksum,
+		arg.Hash,
 		arg.WorkspaceID,
 	)
 	return err
+}
+
+const fetchFile = `-- name: FetchFile :one
+SELECT path, virtual_path, mime_type, hash, created_at, updated_at, workspace_id 
+FROM files
+WHERE id = ?
+LIMIT 1
+`
+
+type FetchFileRow struct {
+	Path        string       `json:"path"`
+	VirtualPath string       `json:"virtual_path"`
+	MimeType    string       `json:"mime_type"`
+	Hash        string       `json:"hash"`
+	CreatedAt   sql.NullTime `json:"created_at"`
+	UpdatedAt   sql.NullTime `json:"updated_at"`
+	WorkspaceID int64        `json:"workspace_id"`
+}
+
+func (q *Queries) FetchFile(ctx context.Context, id int64) (FetchFileRow, error) {
+	row := q.db.QueryRowContext(ctx, fetchFile, id)
+	var i FetchFileRow
+	err := row.Scan(
+		&i.Path,
+		&i.VirtualPath,
+		&i.MimeType,
+		&i.Hash,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.WorkspaceID,
+	)
+	return i, err
+}
+
+const fetchWorkspaceFiles = `-- name: FetchWorkspaceFiles :many
+SELECT id, path, virtual_path, mime_type, hash, created_at, updated_at
+FROM files
+WHERE workspace_id = ?
+`
+
+type FetchWorkspaceFilesRow struct {
+	ID          int64        `json:"id"`
+	Path        string       `json:"path"`
+	VirtualPath string       `json:"virtual_path"`
+	MimeType    string       `json:"mime_type"`
+	Hash        string       `json:"hash"`
+	CreatedAt   sql.NullTime `json:"created_at"`
+	UpdatedAt   sql.NullTime `json:"updated_at"`
+}
+
+func (q *Queries) FetchWorkspaceFiles(ctx context.Context, workspaceID int64) ([]FetchWorkspaceFilesRow, error) {
+	rows, err := q.db.QueryContext(ctx, fetchWorkspaceFiles, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []FetchWorkspaceFilesRow
+	for rows.Next() {
+		var i FetchWorkspaceFilesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Path,
+			&i.VirtualPath,
+			&i.MimeType,
+			&i.Hash,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

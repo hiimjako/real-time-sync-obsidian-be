@@ -5,17 +5,23 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/hiimjako/real-time-sync-obsidian-be/internal/repository"
+	"github.com/hiimjako/real-time-sync-obsidian-be/pkg/filestorage"
 	"github.com/hiimjako/real-time-sync-obsidian-be/pkg/middleware"
 )
 
 type File struct {
-	ID   int64  `json:"id"`
-	Path string `json:"path"`
+	Path    string `json:"path"`
+	Content []byte `json:"content"`
 }
 
 type Response struct {
 	Status string `json:"status"`
 }
+
+const (
+	ErrInvalidFile = "impossilbe to create file"
+)
 
 func (rts *realTimeSyncServer) apiHandler() http.Handler {
 	router := http.NewServeMux()
@@ -24,7 +30,7 @@ func (rts *realTimeSyncServer) apiHandler() http.Handler {
 	stack := middleware.CreateStack(
 		middleware.Logging,
 		middleware.Cors(middleware.CorsOptions{}),
-		// middleware.IsAuthenticated(middleware.AuthOptions{SecretKey: rts.jwtSecret}),
+		middleware.IsAuthenticated(middleware.AuthOptions{SecretKey: rts.jwtSecret}),
 	)
 
 	routerWithStack := stack(router)
@@ -44,12 +50,32 @@ func (rts *realTimeSyncServer) createFileHandler(w http.ResponseWriter, r *http.
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
+	virtualPath, err := rts.storage.CreateObject(data.Path, data.Content)
+	if err != nil {
+		http.Error(w, ErrInvalidFile, http.StatusInternalServerError)
+		return
+	}
+
+	mimeType := http.DetectContentType(data.Content)
+	workspaceID := middleware.WorkspaceIDFromCtx(r.Context())
+
+	if err := rts.db.AddFile(r.Context(), repository.AddFileParams{
+		Path:        data.Path,
+		VirtualPath: virtualPath,
+		MimeType:    mimeType,
+		Hash:        filestorage.CalculateHash(data.Content),
+		WorkspaceID: workspaceID,
+	}); err != nil {
+		http.Error(w, ErrInvalidFile, http.StatusInternalServerError)
+		return
+	}
+
 	response := Response{
 		Status: "success",
 	}
 
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		http.Error(w, "error reading request body", http.StatusInternalServerError)
 		return

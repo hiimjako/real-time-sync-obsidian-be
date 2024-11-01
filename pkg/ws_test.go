@@ -2,7 +2,6 @@ package rtsync
 
 import (
 	"context"
-	"database/sql"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -11,6 +10,7 @@ import (
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
 	"github.com/hiimjako/real-time-sync-obsidian-be/internal/repository"
+	"github.com/hiimjako/real-time-sync-obsidian-be/internal/testutils"
 	"github.com/hiimjako/real-time-sync-obsidian-be/pkg/diff"
 	"github.com/hiimjako/real-time-sync-obsidian-be/pkg/filestorage"
 	"github.com/stretchr/testify/assert"
@@ -20,11 +20,10 @@ import (
 )
 
 func Test_wsHandler(t *testing.T) {
-	db, err := sql.Open("sqlite3", ":memory:")
-	require.NoError(t, err)
+	db := testutils.CreateDB(t)
 
-	storageStub := filestorage.NewStorageStub()
-	handler := New(repository.New(db), storageStub, Options{JWTSecret: []byte("secret")})
+	mockFileStorage := new(filestorage.MockFileStorage)
+	handler := New(repository.New(db), mockFileStorage, Options{JWTSecret: []byte("secret")})
 	ts := httptest.NewServer(handler)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
@@ -50,6 +49,8 @@ func Test_wsHandler(t *testing.T) {
 		},
 	}
 
+	mockFileStorage.On("PersistChunk", msg.FileId, msg.Chunks[0]).Return(nil)
+
 	err = wsjson.Write(ctx, sender, msg)
 	assert.NoError(t, err)
 	go func() {
@@ -64,7 +65,8 @@ func Test_wsHandler(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.Equal(t, msg, recMsg)
-	assert.Equal(t, map[string]string{"file-1": "Hello!"}, storageStub.Files())
+
+	mockFileStorage.AssertCalled(t, "PersistChunk", msg.FileId, msg.Chunks[0])
 
 	t.Cleanup(func() {
 		cancel()

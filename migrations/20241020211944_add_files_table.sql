@@ -2,14 +2,14 @@
 -- +goose StatementBegin
 CREATE TABLE files (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  disk_path TEXT NOT NULL,
+  PATH TEXT NOT NULL,
   virtual_path TEXT NOT NULL,
-  mime_type TEXT,
-  checksum TEXT,
+  mime_type TEXT NOT NULL,
+  hash TEXT NOT NULL,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  workspace_id INTEGER,
-  UNIQUE (disk_path)
+  workspace_id INTEGER NOT NULL,
+  UNIQUE (PATH)
 );
 
 -- +goose StatementEnd
