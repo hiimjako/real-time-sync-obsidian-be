@@ -12,6 +12,8 @@ type Storage interface {
 	PersistChunk(string, diff.DiffChunk) error
 	// CreateObject creates an object and returns the path
 	CreateObject([]byte) (string, error)
+	// DeleteObject deletes an object
+	DeleteObject(string) error
 }
 
 func GenerateHash(content []byte) string {

@@ -50,6 +50,17 @@ func (d Disk) CreateObject(content []byte) (string, error) {
 	return diskPath, nil
 }
 
+func (d Disk) DeleteObject(diskPath string) error {
+	_, err := os.Stat(diskPath)
+	if !os.IsExist(err) {
+		return nil
+	}
+
+	err = os.Remove(diskPath)
+
+	return err
+}
+
 func (d Disk) PersistChunk(filePath string, chunk diff.DiffChunk) error {
 	filePath = path.Join(d.basepath, filePath)
 	switch chunk.Type {

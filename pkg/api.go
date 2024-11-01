@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"strconv"
 
 	"github.com/hiimjako/real-time-sync-obsidian-be/internal/repository"
 	"github.com/hiimjako/real-time-sync-obsidian-be/pkg/filestorage"
@@ -16,12 +17,14 @@ type File struct {
 }
 
 const (
-	ErrInvalidFile = "impossilbe to create file"
+	ErrInvalidFile     = "impossilbe to create file"
+	ErrNotExistingFile = "not existing file"
 )
 
 func (rts *realTimeSyncServer) apiHandler() http.Handler {
 	router := http.NewServeMux()
 	router.HandleFunc("POST /file", rts.createFileHandler)
+	router.HandleFunc("DELETE /file/{id}", rts.deleteFileHandler)
 
 	stack := middleware.CreateStack(
 		middleware.Logging,
@@ -74,4 +77,38 @@ func (rts *realTimeSyncServer) createFileHandler(w http.ResponseWriter, r *http.
 		http.Error(w, "error reading request body", http.StatusInternalServerError)
 		return
 	}
+}
+
+func (rts *realTimeSyncServer) deleteFileHandler(w http.ResponseWriter, r *http.Request) {
+	fileId, err := strconv.Atoi(r.PathValue("id"))
+
+	if fileId == 0 || err != nil {
+		http.Error(w, "invalid file id", http.StatusBadRequest)
+		return
+	}
+
+	file, err := rts.db.FetchFile(r.Context(), int64(fileId))
+	if err != nil {
+		http.Error(w, ErrNotExistingFile, http.StatusBadRequest)
+		return
+	}
+
+	workspaceID := middleware.WorkspaceIDFromCtx(r.Context())
+	if file.WorkspaceID != workspaceID {
+		http.Error(w, ErrNotExistingFile, http.StatusBadRequest)
+		return
+	}
+
+	if err := rts.storage.DeleteObject(file.DiskPath); err != nil {
+		http.Error(w, ErrNotExistingFile, http.StatusInternalServerError)
+		return
+	}
+
+	err = rts.db.DeleteFile(r.Context(), int64(fileId))
+	if err != nil {
+		http.Error(w, ErrInvalidFile, http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }

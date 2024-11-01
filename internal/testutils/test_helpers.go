@@ -42,6 +42,7 @@ func WithAuthHeader(secretKey []byte, workspaceID int64) requestOption {
 func DoRequest[T any](
 	t *testing.T,
 	server http.Handler,
+	method string,
 	path string,
 	input any,
 	options ...requestOption,
@@ -49,7 +50,7 @@ func DoRequest[T any](
 	reqBody, err := json.Marshal(input)
 	require.NoError(t, err)
 
-	req := httptest.NewRequest(http.MethodPost, path, bytes.NewBuffer(reqBody))
+	req := httptest.NewRequest(method, path, bytes.NewBuffer(reqBody))
 	for _, opt := range options {
 		require.NoError(t, opt(req))
 	}

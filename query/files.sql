@@ -14,3 +14,7 @@ SELECT *
 FROM files
 WHERE workspace_id = ?;
 
+-- name: DeleteFile :exec
+DELETE FROM files
+WHERE id = ?;
+

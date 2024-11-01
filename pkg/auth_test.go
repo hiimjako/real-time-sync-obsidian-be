@@ -43,7 +43,7 @@ func Test_fetchWorkspaceHandler(t *testing.T) {
 			Password: "strong_password",
 		}
 
-		res, body := testutils.DoRequest[LoginResponse](t, server, apiPath, data)
+		res, body := testutils.DoRequest[LoginResponse](t, server, http.MethodPost, apiPath, data)
 
 		assert.Equal(t, http.StatusOK, res.Code)
 		jwtRegex := `^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$`
@@ -57,7 +57,7 @@ func Test_fetchWorkspaceHandler(t *testing.T) {
 			Name:     "workspace1",
 			Password: "invalid_pass",
 		}
-		res, body := testutils.DoRequest[string](t, server, apiPath, data)
+		res, body := testutils.DoRequest[string](t, server, http.MethodPost, apiPath, data)
 		assert.Equal(t, http.StatusUnauthorized, res.Code)
 		assert.Equal(t, ErrIncorrectPassword, body)
 	})
@@ -68,7 +68,7 @@ func Test_fetchWorkspaceHandler(t *testing.T) {
 			Password: "random",
 		}
 
-		res, body := testutils.DoRequest[string](t, server, apiPath, data)
+		res, body := testutils.DoRequest[string](t, server, http.MethodPost, apiPath, data)
 		assert.Equal(t, http.StatusNotFound, res.Code)
 		assert.Equal(t, ErrWorkspaceNotFound, body)
 	})

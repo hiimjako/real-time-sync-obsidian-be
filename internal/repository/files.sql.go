@@ -45,6 +45,16 @@ func (q *Queries) AddFile(ctx context.Context, arg AddFileParams) (File, error) 
 	return i, err
 }
 
+const deleteFile = `-- name: DeleteFile :exec
+DELETE FROM files
+WHERE id = ?
+`
+
+func (q *Queries) DeleteFile(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteFile, id)
+	return err
+}
+
 const fetchFile = `-- name: FetchFile :one
 SELECT id, disk_path, workspace_path, mime_type, hash, created_at, updated_at, workspace_id
 FROM files
