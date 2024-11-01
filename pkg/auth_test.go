@@ -1,19 +1,15 @@
 package rtsync
 
 import (
-	"bytes"
 	"context"
 	"database/sql"
-	"encoding/json"
-	"io"
 	"net/http"
-	"net/http/httptest"
 	"regexp"
-	"strings"
 	"testing"
 
 	"github.com/hiimjako/real-time-sync-obsidian-be/internal/migration"
 	"github.com/hiimjako/real-time-sync-obsidian-be/internal/repository"
+	"github.com/hiimjako/real-time-sync-obsidian-be/internal/testutils"
 	"github.com/hiimjako/real-time-sync-obsidian-be/pkg/filestorage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -35,16 +31,19 @@ func Test_fetchWorkspaceHandler(t *testing.T) {
 		Password: "strong_password",
 	}))
 
+	const apiPath = PathHttpAuth + "/login"
+
 	t.Run("existing user", func(t *testing.T) {
 		data := WorkspaceCredentials{
 			Name:     "workspace1",
 			Password: "strong_password",
 		}
-		code, res, _ := sendRequest(t, server, data)
-		assert.Equal(t, http.StatusOK, code)
 
+		res, body := testutils.DoRequest[LoginResponse](t, server, apiPath, data)
+
+		assert.Equal(t, http.StatusOK, res.Code)
 		jwtRegex := `^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$`
-		matched, err := regexp.MatchString(jwtRegex, res.Token)
+		matched, err := regexp.MatchString(jwtRegex, body.Token)
 		assert.NoError(t, err)
 		assert.True(t, matched)
 	})
@@ -54,9 +53,9 @@ func Test_fetchWorkspaceHandler(t *testing.T) {
 			Name:     "workspace1",
 			Password: "invalid_pass",
 		}
-		code, _, errStr := sendRequest(t, server, data)
-		assert.Equal(t, http.StatusUnauthorized, code)
-		assert.Equal(t, ErrIncorrectPassword, errStr)
+		res, body := testutils.DoRequest[string](t, server, apiPath, data)
+		assert.Equal(t, http.StatusUnauthorized, res.Code)
+		assert.Equal(t, ErrIncorrectPassword, body)
 	})
 
 	t.Run("missing user", func(t *testing.T) {
@@ -65,36 +64,13 @@ func Test_fetchWorkspaceHandler(t *testing.T) {
 			Password: "random",
 		}
 
-		code, _, errStr := sendRequest(t, server, data)
-		assert.Equal(t, http.StatusNotFound, code)
-		assert.Equal(t, ErrWorkspaceNotFound, errStr)
+		res, body := testutils.DoRequest[string](t, server, apiPath, data)
+		assert.Equal(t, http.StatusNotFound, res.Code)
+		assert.Equal(t, ErrWorkspaceNotFound, body)
 	})
 
 	t.Cleanup(func() {
 		server.Close()
 		db.Close()
 	})
-}
-
-func sendRequest(t *testing.T, server *realTimeSyncServer, data WorkspaceCredentials) (int, LoginResponse, string) {
-	reqBody, err := json.Marshal(data)
-	require.NoError(t, err)
-	req := httptest.NewRequest(http.MethodPost, PathHttpAuth+"/login", bytes.NewBuffer(reqBody))
-	res := httptest.NewRecorder()
-
-	server.ServeHTTP(res, req)
-
-	body, err := io.ReadAll(res.Body)
-	require.NoError(t, err)
-
-	var resBody LoginResponse
-
-	if res.Code == http.StatusOK {
-		err = json.Unmarshal(body, &resBody)
-		assert.NoError(t, err)
-		return res.Code, resBody, ""
-	}
-
-	errStr := strings.Trim(string(body), "\n")
-	return res.Code, resBody, errStr
 }

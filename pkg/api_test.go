@@ -1,19 +1,13 @@
 package rtsync
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
-	"io"
-	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	"github.com/hiimjako/real-time-sync-obsidian-be/internal/repository"
 	"github.com/hiimjako/real-time-sync-obsidian-be/internal/testutils"
 	"github.com/hiimjako/real-time-sync-obsidian-be/pkg/filestorage"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -35,25 +29,16 @@ func Test_createFileHandler(t *testing.T) {
 	virtualPath := "foo/bar"
 	mockFileStorage.On("CreateObject", data.Path, data.Content).Return(virtualPath, nil)
 
-	reqBody, err := json.Marshal(data)
-	require.NoError(t, err)
-
-	req := httptest.NewRequest(http.MethodPost, PathHttpApi+"/file", bytes.NewBuffer(reqBody))
-	require.NoError(t, testutils.CreateAuthHeader(req, options.JWTSecret, workspaceID))
-
-	res := httptest.NewRecorder()
-
-	server.ServeHTTP(res, req)
-
-	var resBody Response
-	body, err := io.ReadAll(res.Body)
-	require.NoError(t, err)
-
-	err = json.Unmarshal(body, &resBody)
-	assert.NoError(t, err)
+	res, body := testutils.DoRequest[Response](
+		t,
+		server,
+		PathHttpApi+"/file",
+		data,
+		testutils.WithAuthHeader(options.JWTSecret, workspaceID),
+	)
 
 	assert.Equal(t, 201, res.Code)
-	assert.Equal(t, Response{Status: "success"}, resBody)
+	assert.Equal(t, Response{Status: "success"}, body)
 
 	files, err := repo.FetchWorkspaceFiles(context.Background(), workspaceID)
 	assert.NoError(t, err)
