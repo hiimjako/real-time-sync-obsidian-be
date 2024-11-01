@@ -33,7 +33,7 @@ func Test_fetchWorkspaceHandler(t *testing.T) {
 
 	const apiPath = PathHttpAuth + "/login"
 
-	t.Run("existing user", func(t *testing.T) {
+	t.Run("existing workspace", func(t *testing.T) {
 		data := WorkspaceCredentials{
 			Name:     "workspace1",
 			Password: "strong_password",
@@ -58,7 +58,7 @@ func Test_fetchWorkspaceHandler(t *testing.T) {
 		assert.Equal(t, ErrIncorrectPassword, body)
 	})
 
-	t.Run("missing user", func(t *testing.T) {
+	t.Run("missing workspace", func(t *testing.T) {
 		data := WorkspaceCredentials{
 			Name:     "workspace2",
 			Password: "random",
