@@ -65,14 +65,14 @@ func (d Disk) PersistChunk(filePath string, chunk diff.DiffChunk) error {
 	filePath = path.Join(d.basepath, filePath)
 	switch chunk.Type {
 	case diff.DiffAdd:
-		return addBytesFromFile(filePath, chunk.Position, chunk.Text)
+		return addBytesToFile(filePath, chunk.Position, chunk.Text)
 	case diff.DiffRemove:
 		return removeBytesFromFile(filePath, chunk.Position, chunk.Len)
 	}
 	return fmt.Errorf("diff type %v not supported", chunk.Type)
 }
 
-func addBytesFromFile(filePath string, start int64, str string) error {
+func addBytesToFile(filePath string, start int64, str string) error {
 	file, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
 		return err
