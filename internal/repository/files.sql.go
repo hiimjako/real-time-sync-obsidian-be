@@ -7,27 +7,26 @@ package repository
 
 import (
 	"context"
-	"database/sql"
 )
 
 const addFile = `-- name: AddFile :one
-INSERT INTO files (path, virtual_path, mime_type, hash, workspace_id)
+INSERT INTO files (disk_path, workspace_path, mime_type, hash, workspace_id)
 VALUES (?, ?, ?, ?, ?)
-RETURNING id, path, virtual_path, mime_type, hash, created_at, updated_at, workspace_id
+RETURNING id, disk_path, workspace_path, mime_type, hash, created_at, updated_at, workspace_id
 `
 
 type AddFileParams struct {
-	Path        string `json:"path"`
-	VirtualPath string `json:"virtual_path"`
-	MimeType    string `json:"mime_type"`
-	Hash        string `json:"hash"`
-	WorkspaceID int64  `json:"workspace_id"`
+	DiskPath      string `json:"disk_path"`
+	WorkspacePath string `json:"workspace_path"`
+	MimeType      string `json:"mime_type"`
+	Hash          string `json:"hash"`
+	WorkspaceID   int64  `json:"workspace_id"`
 }
 
 func (q *Queries) AddFile(ctx context.Context, arg AddFileParams) (File, error) {
 	row := q.db.QueryRowContext(ctx, addFile,
-		arg.Path,
-		arg.VirtualPath,
+		arg.DiskPath,
+		arg.WorkspacePath,
 		arg.MimeType,
 		arg.Hash,
 		arg.WorkspaceID,
@@ -35,8 +34,8 @@ func (q *Queries) AddFile(ctx context.Context, arg AddFileParams) (File, error) 
 	var i File
 	err := row.Scan(
 		&i.ID,
-		&i.Path,
-		&i.VirtualPath,
+		&i.DiskPath,
+		&i.WorkspacePath,
 		&i.MimeType,
 		&i.Hash,
 		&i.CreatedAt,
@@ -47,28 +46,19 @@ func (q *Queries) AddFile(ctx context.Context, arg AddFileParams) (File, error) 
 }
 
 const fetchFile = `-- name: FetchFile :one
-SELECT path, virtual_path, mime_type, hash, created_at, updated_at, workspace_id 
+SELECT id, disk_path, workspace_path, mime_type, hash, created_at, updated_at, workspace_id
 FROM files
 WHERE id = ?
 LIMIT 1
 `
 
-type FetchFileRow struct {
-	Path        string       `json:"path"`
-	VirtualPath string       `json:"virtual_path"`
-	MimeType    string       `json:"mime_type"`
-	Hash        string       `json:"hash"`
-	CreatedAt   sql.NullTime `json:"created_at"`
-	UpdatedAt   sql.NullTime `json:"updated_at"`
-	WorkspaceID int64        `json:"workspace_id"`
-}
-
-func (q *Queries) FetchFile(ctx context.Context, id int64) (FetchFileRow, error) {
+func (q *Queries) FetchFile(ctx context.Context, id int64) (File, error) {
 	row := q.db.QueryRowContext(ctx, fetchFile, id)
-	var i FetchFileRow
+	var i File
 	err := row.Scan(
-		&i.Path,
-		&i.VirtualPath,
+		&i.ID,
+		&i.DiskPath,
+		&i.WorkspacePath,
 		&i.MimeType,
 		&i.Hash,
 		&i.CreatedAt,
@@ -79,38 +69,29 @@ func (q *Queries) FetchFile(ctx context.Context, id int64) (FetchFileRow, error)
 }
 
 const fetchWorkspaceFiles = `-- name: FetchWorkspaceFiles :many
-SELECT id, path, virtual_path, mime_type, hash, created_at, updated_at
+SELECT id, disk_path, workspace_path, mime_type, hash, created_at, updated_at, workspace_id
 FROM files
 WHERE workspace_id = ?
 `
 
-type FetchWorkspaceFilesRow struct {
-	ID          int64        `json:"id"`
-	Path        string       `json:"path"`
-	VirtualPath string       `json:"virtual_path"`
-	MimeType    string       `json:"mime_type"`
-	Hash        string       `json:"hash"`
-	CreatedAt   sql.NullTime `json:"created_at"`
-	UpdatedAt   sql.NullTime `json:"updated_at"`
-}
-
-func (q *Queries) FetchWorkspaceFiles(ctx context.Context, workspaceID int64) ([]FetchWorkspaceFilesRow, error) {
+func (q *Queries) FetchWorkspaceFiles(ctx context.Context, workspaceID int64) ([]File, error) {
 	rows, err := q.db.QueryContext(ctx, fetchWorkspaceFiles, workspaceID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []FetchWorkspaceFilesRow
+	var items []File
 	for rows.Next() {
-		var i FetchWorkspaceFilesRow
+		var i File
 		if err := rows.Scan(
 			&i.ID,
-			&i.Path,
-			&i.VirtualPath,
+			&i.DiskPath,
+			&i.WorkspacePath,
 			&i.MimeType,
 			&i.Hash,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.WorkspaceID,
 		); err != nil {
 			return nil, err
 		}

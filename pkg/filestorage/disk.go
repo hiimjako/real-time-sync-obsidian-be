@@ -24,19 +24,19 @@ func NewDisk(basepath string) Disk {
 
 func (d Disk) CreateObject(content []byte) (string, error) {
 	id := uuid.New().String()
-	virtualPath := path.Join(d.basepath, path.Join(strings.Split(id, "-")...))
+	diskPath := path.Join(d.basepath, path.Join(strings.Split(id, "-")...))
 
-	_, err := os.Stat(virtualPath)
+	_, err := os.Stat(diskPath)
 	if os.IsExist(err) {
 		return "", err
 	}
 
-	dir := filepath.Dir(virtualPath)
+	dir := filepath.Dir(diskPath)
 	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 		return "", err
 	}
 
-	file, err := os.Create(virtualPath)
+	file, err := os.Create(diskPath)
 	if err != nil {
 		return "", nil
 	}
@@ -47,7 +47,7 @@ func (d Disk) CreateObject(content []byte) (string, error) {
 		return "", nil
 	}
 
-	return virtualPath, nil
+	return diskPath, nil
 }
 
 func (d Disk) PersistChunk(filePath string, chunk diff.DiffChunk) error {

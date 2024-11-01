@@ -46,7 +46,7 @@ func (rts *realTimeSyncServer) createFileHandler(w http.ResponseWriter, r *http.
 		return
 	}
 
-	virtualPath, err := rts.storage.CreateObject(data.Content)
+	diskPath, err := rts.storage.CreateObject(data.Content)
 	if err != nil {
 		http.Error(w, ErrInvalidFile, http.StatusInternalServerError)
 		return
@@ -56,11 +56,11 @@ func (rts *realTimeSyncServer) createFileHandler(w http.ResponseWriter, r *http.
 	workspaceID := middleware.WorkspaceIDFromCtx(r.Context())
 
 	file, err := rts.db.AddFile(r.Context(), repository.AddFileParams{
-		Path:        data.Path,
-		VirtualPath: virtualPath,
-		MimeType:    mimeType,
-		Hash:        filestorage.GenerateHash(data.Content),
-		WorkspaceID: workspaceID,
+		DiskPath:      diskPath,
+		WorkspacePath: data.Path,
+		MimeType:      mimeType,
+		Hash:          filestorage.GenerateHash(data.Content),
+		WorkspaceID:   workspaceID,
 	})
 
 	if err != nil {

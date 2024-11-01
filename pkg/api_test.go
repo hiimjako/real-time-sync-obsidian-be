@@ -28,8 +28,8 @@ func Test_createFileHandler(t *testing.T) {
 		Content: []byte("here a new file!"),
 	}
 
-	virtualPath := "foo/bar"
-	mockFileStorage.On("CreateObject", data.Content).Return(virtualPath, nil)
+	diskPath := "/foo/bar"
+	mockFileStorage.On("CreateObject", data.Content).Return(diskPath, nil)
 
 	res, body := testutils.DoRequest[repository.File](
 		t,
@@ -42,28 +42,29 @@ func Test_createFileHandler(t *testing.T) {
 	// check response
 	assert.Equal(t, 201, res.Code)
 	assert.Equal(t, repository.File{
-		ID:          1,
-		Path:        data.Path,
-		VirtualPath: virtualPath,
-		MimeType:    "text/plain; charset=utf-8",
-		Hash:        filestorage.GenerateHash(data.Content),
-		CreatedAt:   body.CreatedAt,
-		UpdatedAt:   body.UpdatedAt,
-		WorkspaceID: workspaceID,
+		ID:            1,
+		DiskPath:      diskPath,
+		WorkspacePath: data.Path,
+		MimeType:      "text/plain; charset=utf-8",
+		Hash:          filestorage.GenerateHash(data.Content),
+		CreatedAt:     body.CreatedAt,
+		UpdatedAt:     body.UpdatedAt,
+		WorkspaceID:   workspaceID,
 	}, body)
 
 	// check db
 	files, err := repo.FetchWorkspaceFiles(context.Background(), workspaceID)
 	assert.NoError(t, err)
 	assert.Len(t, files, 1)
-	assert.Equal(t, repository.FetchWorkspaceFilesRow{
-		ID:          1,
-		Path:        data.Path,
-		VirtualPath: virtualPath,
-		MimeType:    "text/plain; charset=utf-8",
-		Hash:        filestorage.GenerateHash(data.Content),
-		CreatedAt:   files[0].CreatedAt,
-		UpdatedAt:   files[0].UpdatedAt,
+	assert.Equal(t, repository.File{
+		ID:            1,
+		DiskPath:      diskPath,
+		WorkspacePath: data.Path,
+		MimeType:      "text/plain; charset=utf-8",
+		Hash:          filestorage.GenerateHash(data.Content),
+		CreatedAt:     files[0].CreatedAt,
+		UpdatedAt:     files[0].UpdatedAt,
+		WorkspaceID:   workspaceID,
 	}, files[0])
 
 	// check mock assertions
