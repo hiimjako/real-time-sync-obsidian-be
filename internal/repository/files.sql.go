@@ -78,6 +78,44 @@ func (q *Queries) FetchFile(ctx context.Context, id int64) (File, error) {
 	return i, err
 }
 
+const fetchFiles = `-- name: FetchFiles :many
+SELECT id, disk_path, workspace_path, mime_type, hash, created_at, updated_at, workspace_id
+FROM files
+WHERE workspace_id = ?
+`
+
+func (q *Queries) FetchFiles(ctx context.Context, workspaceID int64) ([]File, error) {
+	rows, err := q.db.QueryContext(ctx, fetchFiles, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []File
+	for rows.Next() {
+		var i File
+		if err := rows.Scan(
+			&i.ID,
+			&i.DiskPath,
+			&i.WorkspacePath,
+			&i.MimeType,
+			&i.Hash,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.WorkspaceID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const fetchWorkspaceFiles = `-- name: FetchWorkspaceFiles :many
 SELECT id, disk_path, workspace_path, mime_type, hash, created_at, updated_at, workspace_id
 FROM files

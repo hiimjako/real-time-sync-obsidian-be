@@ -23,6 +23,8 @@ const (
 
 func (rts *realTimeSyncServer) apiHandler() http.Handler {
 	router := http.NewServeMux()
+	router.HandleFunc("GET /file", rts.listFilesHandler)
+	router.HandleFunc("GET /file/{id}", rts.fetchFileHandler)
 	router.HandleFunc("POST /file", rts.createFileHandler)
 	router.HandleFunc("DELETE /file/{id}", rts.deleteFileHandler)
 
@@ -34,6 +36,23 @@ func (rts *realTimeSyncServer) apiHandler() http.Handler {
 
 	routerWithStack := stack(router)
 	return routerWithStack
+}
+
+func (rts *realTimeSyncServer) listFilesHandler(w http.ResponseWriter, r *http.Request) {
+	workspaceID := middleware.WorkspaceIDFromCtx(r.Context())
+
+	files, err := rts.db.FetchFiles(r.Context(), workspaceID)
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(files); err != nil {
+		http.Error(w, "error reading request body", http.StatusInternalServerError)
+		return
+	}
 }
 
 func (rts *realTimeSyncServer) createFileHandler(w http.ResponseWriter, r *http.Request) {

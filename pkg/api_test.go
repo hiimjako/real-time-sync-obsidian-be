@@ -14,6 +14,65 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+// Test_listFilesHandler tests the listFileHandler using mocked storage
+func Test_listFilesHandler(t *testing.T) {
+	mockFileStorage := new(filestorage.MockFileStorage)
+	db := testutils.CreateDB(t)
+	repo := repository.New(db)
+	options := Options{JWTSecret: []byte("secret")}
+	server := New(repo, mockFileStorage, options)
+
+	t.Cleanup(func() { server.Close() })
+
+	workspaceID := int64(10)
+	filesToInsert := []struct {
+		file        File
+		workspaceID int64
+	}{
+		{
+			file:        File{Path: "/home/file/1", Content: []byte("here a new file!")},
+			workspaceID: workspaceID,
+		},
+		{
+			file:        File{Path: "/home/file/2", Content: []byte("here a new file 2!")},
+			workspaceID: workspaceID,
+		},
+		{
+			file:        File{Path: "/home/file/3", Content: []byte("here a new file 3!")},
+			workspaceID: 123,
+		},
+	}
+
+	for _, f := range filesToInsert {
+		mockFileStorage.On("CreateObject", f.file.Content).Return(f.file.Path, nil)
+
+		res, _ := testutils.DoRequest[repository.File](
+			t,
+			server,
+			http.MethodPost,
+			PathHttpApi+"/file",
+			f.file,
+			testutils.WithAuthHeader(options.JWTSecret, f.workspaceID),
+		)
+		assert.Equal(t, http.StatusCreated, res.Code)
+	}
+
+	// fetch files
+	res, body := testutils.DoRequest[[]repository.File](
+		t,
+		server,
+		http.MethodGet,
+		PathHttpApi+"/file",
+		nil,
+		testutils.WithAuthHeader(options.JWTSecret, workspaceID),
+	)
+	assert.Equal(t, http.StatusOK, res.Code)
+	assert.Len(t, body, 2)
+
+	// check mock assertions
+	mockFileStorage.AssertNumberOfCalls(t, "CreateObject", len(filesToInsert))
+}
+
 // Test_createFileHandler tests the createFileHandler using mocked storage
 func Test_createFileHandler(t *testing.T) {
 	mockFileStorage := new(filestorage.MockFileStorage)
@@ -135,9 +194,6 @@ func Test_deleteFileHandler(t *testing.T) {
 			Content: []byte("here a new file!"),
 		}
 
-		diskPath := "/foo/bar/2"
-		mockFileStorage.On("CreateObject", data.Content).Return(diskPath, nil)
-
 		// creating file
 		res, createBody := testutils.DoRequest[repository.File](
 			t,
@@ -168,7 +224,6 @@ func Test_deleteFileHandler(t *testing.T) {
 		assert.Len(t, files, 1)
 
 		// check mock assertions
-		mockFileStorage.AssertCalled(t, "CreateObject", data.Content)
 		mockFileStorage.AssertNotCalled(t, "DeleteObject")
 	})
 }

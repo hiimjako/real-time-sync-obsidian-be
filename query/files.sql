@@ -9,6 +9,11 @@ FROM files
 WHERE id = ?
 LIMIT 1;
 
+-- name: FetchFiles :many
+SELECT *
+FROM files
+WHERE workspace_id = ?;
+
 -- name: FetchWorkspaceFiles :many
 SELECT *
 FROM files
