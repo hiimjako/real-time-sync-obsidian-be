@@ -215,7 +215,7 @@ func Test_deleteFileHandler(t *testing.T) {
 			data,
 			testutils.WithAuthHeader(options.JWTSecret, anotherWorkspaceID),
 		)
-		assert.Equal(t, http.StatusBadRequest, res.Code)
+		assert.Equal(t, http.StatusNotFound, res.Code)
 		assert.Equal(t, ErrNotExistingFile, deleteBody)
 
 		// check db

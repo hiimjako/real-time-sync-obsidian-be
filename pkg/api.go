@@ -108,13 +108,13 @@ func (rts *realTimeSyncServer) deleteFileHandler(w http.ResponseWriter, r *http.
 
 	file, err := rts.db.FetchFile(r.Context(), int64(fileId))
 	if err != nil {
-		http.Error(w, ErrNotExistingFile, http.StatusBadRequest)
+		http.Error(w, ErrNotExistingFile, http.StatusNotFound)
 		return
 	}
 
 	workspaceID := middleware.WorkspaceIDFromCtx(r.Context())
 	if file.WorkspaceID != workspaceID {
-		http.Error(w, ErrNotExistingFile, http.StatusBadRequest)
+		http.Error(w, ErrNotExistingFile, http.StatusNotFound)
 		return
 	}
 
