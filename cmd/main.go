@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"flag"
 	"log"
 	"net"
 	"net/http"
@@ -20,7 +21,10 @@ import (
 )
 
 func main() {
-	ev := env.LoadEnv()
+	envPath := flag.String("env", ".env", ".env path")
+	flag.Parse()
+
+	ev := env.LoadEnv(*envPath)
 
 	err := run(ev)
 	if err != nil {
