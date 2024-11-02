@@ -60,7 +60,7 @@ func (rts *realTimeSyncServer) fetchWorkspaceHandler(w http.ResponseWriter, r *h
 		return
 	}
 
-	token, err := middleware.CreateToken(middleware.AuthOptions{SecretKey: []byte{}}, workspace.ID)
+	token, err := middleware.CreateToken(middleware.AuthOptions{SecretKey: rts.jwtSecret}, workspace.ID)
 	if err != nil {
 		http.Error(w, "error while creating auth token", http.StatusInternalServerError)
 		return
