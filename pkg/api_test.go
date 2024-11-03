@@ -164,54 +164,88 @@ func Test_createFileHandler(t *testing.T) {
 
 	t.Cleanup(func() { server.Close() })
 
-	workspaceID := int64(10)
-	data := CreateFileBody{
-		Path:    "/home/file",
-		Content: []byte("here a new file!"),
-	}
+	t.Run("should create a file", func(t *testing.T) {
+		workspaceID := int64(10)
+		data := CreateFileBody{
+			Path:    "/home/file",
+			Content: []byte("here a new file!"),
+		}
 
-	diskPath := "/foo/bar"
-	mockFileStorage.On("CreateObject", data.Content).Return(diskPath, nil)
+		diskPath := "/foo/bar"
+		mockFileStorage.On("CreateObject", data.Content).Return(diskPath, nil)
 
-	res, body := testutils.DoRequest[repository.File](
-		t,
-		server,
-		http.MethodPost,
-		PathHttpApi+"/file",
-		data,
-		testutils.WithAuthHeader(options.JWTSecret, workspaceID),
-	)
+		res, body := testutils.DoRequest[repository.File](
+			t,
+			server,
+			http.MethodPost,
+			PathHttpApi+"/file",
+			data,
+			testutils.WithAuthHeader(options.JWTSecret, workspaceID),
+		)
 
-	// check response
-	assert.Equal(t, http.StatusCreated, res.Code)
-	assert.Equal(t, repository.File{
-		ID:            1,
-		DiskPath:      diskPath,
-		WorkspacePath: data.Path,
-		MimeType:      "text/plain; charset=utf-8",
-		Hash:          filestorage.GenerateHash(data.Content),
-		CreatedAt:     body.CreatedAt,
-		UpdatedAt:     body.UpdatedAt,
-		WorkspaceID:   workspaceID,
-	}, body)
+		// check response
+		assert.Equal(t, http.StatusCreated, res.Code)
+		assert.Equal(t, repository.File{
+			ID:            1,
+			DiskPath:      diskPath,
+			WorkspacePath: data.Path,
+			MimeType:      "text/plain; charset=utf-8",
+			Hash:          filestorage.GenerateHash(data.Content),
+			CreatedAt:     body.CreatedAt,
+			UpdatedAt:     body.UpdatedAt,
+			WorkspaceID:   workspaceID,
+		}, body)
 
-	// check db
-	files, err := repo.FetchWorkspaceFiles(context.Background(), workspaceID)
-	assert.NoError(t, err)
-	assert.Len(t, files, 1)
-	assert.Equal(t, repository.File{
-		ID:            1,
-		DiskPath:      diskPath,
-		WorkspacePath: data.Path,
-		MimeType:      "text/plain; charset=utf-8",
-		Hash:          filestorage.GenerateHash(data.Content),
-		CreatedAt:     files[0].CreatedAt,
-		UpdatedAt:     files[0].UpdatedAt,
-		WorkspaceID:   workspaceID,
-	}, files[0])
+		// check db
+		files, err := repo.FetchWorkspaceFiles(context.Background(), workspaceID)
+		assert.NoError(t, err)
+		assert.Len(t, files, 1)
+		assert.Equal(t, repository.File{
+			ID:            1,
+			DiskPath:      diskPath,
+			WorkspacePath: data.Path,
+			MimeType:      "text/plain; charset=utf-8",
+			Hash:          filestorage.GenerateHash(data.Content),
+			CreatedAt:     files[0].CreatedAt,
+			UpdatedAt:     files[0].UpdatedAt,
+			WorkspaceID:   workspaceID,
+		}, files[0])
 
-	// check mock assertions
-	mockFileStorage.AssertCalled(t, "CreateObject", data.Content)
+		// check mock assertions
+		mockFileStorage.AssertCalled(t, "CreateObject", data.Content)
+	})
+
+	t.Run("should not insert duplicate paths", func(t *testing.T) {
+		workspaceID := int64(10)
+		data := CreateFileBody{
+			Path:    "/home/file",
+			Content: []byte("here a new file!"),
+		}
+
+		diskPath := "/foo/bar"
+		mockFileStorage.On("CreateObject", data.Content).Return(diskPath, nil)
+
+		res, body := testutils.DoRequest[string](
+			t,
+			server,
+			http.MethodPost,
+			PathHttpApi+"/file",
+			data,
+			testutils.WithAuthHeader(options.JWTSecret, workspaceID),
+		)
+
+		// check response
+		assert.Equal(t, http.StatusConflict, res.Code)
+		assert.Equal(t, ErrDuplicateFile, body)
+
+		// check db
+		files, err := repo.FetchWorkspaceFiles(context.Background(), workspaceID)
+		assert.NoError(t, err)
+		assert.Len(t, files, 1)
+
+		// check mock assertions
+		mockFileStorage.AssertCalled(t, "CreateObject", data.Content)
+	})
 }
 
 // Test_deleteFileHandler tests the deleteFileHandler using mocked storage

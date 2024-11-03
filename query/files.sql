@@ -23,3 +23,9 @@ WHERE workspace_id = ?;
 DELETE FROM files
 WHERE id = ?;
 
+-- name: FetchFileFromWorkspacePath :one
+SELECT *
+FROM files
+WHERE workspace_path = ?
+LIMIT 1;
+

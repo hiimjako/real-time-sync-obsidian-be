@@ -22,6 +22,7 @@ type FileWithContent struct {
 }
 
 const (
+	ErrDuplicateFile   = "duplicated file"
 	ErrInvalidFile     = "impossilbe to create file"
 	ErrReadingFile     = "impossilbe to read file"
 	ErrNotExistingFile = "not existing file"
@@ -114,6 +115,13 @@ func (rts *realTimeSyncServer) createFileHandler(w http.ResponseWriter, r *http.
 	var data CreateFileBody
 	if err = json.Unmarshal(body, &data); err != nil {
 		http.Error(w, "error parsing JSON", http.StatusBadRequest)
+		return
+	}
+
+	// if there isn't any file an error is returned
+	_, err = rts.db.FetchFileFromWorkspacePath(r.Context(), data.Path)
+	if err == nil {
+		http.Error(w, ErrDuplicateFile, http.StatusConflict)
 		return
 	}
 
