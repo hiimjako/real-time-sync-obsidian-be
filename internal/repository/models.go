@@ -6,17 +6,18 @@ package repository
 
 import (
 	"database/sql"
+	"time"
 )
 
 type File struct {
-	ID            int64        `json:"id"`
-	DiskPath      string       `json:"disk_path"`
-	WorkspacePath string       `json:"workspace_path"`
-	MimeType      string       `json:"mime_type"`
-	Hash          string       `json:"hash"`
-	CreatedAt     sql.NullTime `json:"created_at"`
-	UpdatedAt     sql.NullTime `json:"updated_at"`
-	WorkspaceID   int64        `json:"workspace_id"`
+	ID            int64     `json:"id"`
+	DiskPath      string    `json:"disk_path"`
+	WorkspacePath string    `json:"workspace_path"`
+	MimeType      string    `json:"mime_type"`
+	Hash          string    `json:"hash"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+	WorkspaceID   int64     `json:"workspace_id"`
 }
 
 type Workspace struct {

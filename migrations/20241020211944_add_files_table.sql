@@ -6,8 +6,8 @@ CREATE TABLE files (
   workspace_path TEXT NOT NULL,
   mime_type TEXT NOT NULL,
   hash TEXT NOT NULL,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
   workspace_id INTEGER NOT NULL,
   UNIQUE (disk_path, workspace_path)
 );
