@@ -66,7 +66,7 @@ func CreateToken(ao AuthOptions, workspaceID int64) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		CustomClaims{
 			RegisteredClaims: jwt.RegisteredClaims{
-				ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
+				ExpiresAt: jwt.NewNumericDate(time.Now().Add(30 * time.Minute)),
 				IssuedAt:  jwt.NewNumericDate(time.Now()),
 				NotBefore: jwt.NewNumericDate(time.Now()),
 				Issuer:    Issuer,
