@@ -25,7 +25,9 @@ type subscriber struct {
 }
 
 func NewSubscriber(w http.ResponseWriter, r *http.Request) (*subscriber, error) {
-	c, err := websocket.Accept(w, r, nil)
+	c, err := websocket.Accept(w, r, &websocket.AcceptOptions{
+		OriginPatterns: []string{"127.0.0.1", "obsidian.md"},
+	})
 	if err != nil {
 		return nil, err
 	}
