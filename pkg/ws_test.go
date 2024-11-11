@@ -76,6 +76,7 @@ func Test_wsHandler(t *testing.T) {
 
 	assert.Equal(t, msg, recMsg)
 
+	time.Sleep(10 * time.Millisecond)
 	mockFileStorage.AssertCalled(t, "PersistChunk", file.DiskPath, msg.Chunks[0])
 
 	t.Cleanup(func() {
