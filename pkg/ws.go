@@ -17,7 +17,7 @@ type InternalWSMessage struct {
 }
 
 type DiffChunkMessage struct {
-	FileId string
+	FileId int64
 	Chunks []diff.DiffChunk
 }
 
@@ -130,7 +130,13 @@ func (rts *realTimeSyncServer) writeChunks() {
 		select {
 		case data := <-rts.storageQueue:
 			for _, d := range data.Chunks {
-				err := rts.storage.PersistChunk(data.FileId, d)
+				file, err := rts.db.FetchFile(context.Background(), data.FileId)
+				if err != nil {
+					log.Println(err)
+					return
+				}
+
+				err = rts.storage.PersistChunk(file.DiskPath, d)
 				if err != nil {
 					log.Println(err)
 				}

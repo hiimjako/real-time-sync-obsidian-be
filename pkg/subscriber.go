@@ -74,7 +74,7 @@ func (s *subscriber) ReadMessage() (DiffChunkMessage, error) {
 	}
 
 	fileId := data.FileId
-	if fileId == "" {
+	if fileId <= 0 {
 		return data, fmt.Errorf("missing fileId")
 	}
 

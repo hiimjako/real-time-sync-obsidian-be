@@ -23,7 +23,8 @@ func Test_wsHandler(t *testing.T) {
 	db := testutils.CreateDB(t)
 
 	mockFileStorage := new(filestorage.MockFileStorage)
-	handler := New(repository.New(db), mockFileStorage, Options{JWTSecret: []byte("secret")})
+	repo := repository.New(db)
+	handler := New(repo, mockFileStorage, Options{JWTSecret: []byte("secret")})
 	ts := httptest.NewServer(handler)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
@@ -37,8 +38,17 @@ func Test_wsHandler(t *testing.T) {
 	reciver, _, err := websocket.Dial(ctx, url, nil)
 	require.NoError(t, err)
 
+	file, err := repo.AddFile(context.Background(), repository.AddFileParams{
+		DiskPath:      "disk_path",
+		WorkspacePath: "workspace_path",
+		MimeType:      "",
+		Hash:          "",
+		WorkspaceID:   1,
+	})
+	assert.NoError(t, err)
+
 	msg := DiffChunkMessage{
-		FileId: "file-1",
+		FileId: file.ID,
 		Chunks: []diff.DiffChunk{
 			{
 				Position: 0,
@@ -49,7 +59,7 @@ func Test_wsHandler(t *testing.T) {
 		},
 	}
 
-	mockFileStorage.On("PersistChunk", msg.FileId, msg.Chunks[0]).Return(nil)
+	mockFileStorage.On("PersistChunk", file.DiskPath, msg.Chunks[0]).Return(nil)
 
 	err = wsjson.Write(ctx, sender, msg)
 	assert.NoError(t, err)
@@ -66,7 +76,7 @@ func Test_wsHandler(t *testing.T) {
 
 	assert.Equal(t, msg, recMsg)
 
-	mockFileStorage.AssertCalled(t, "PersistChunk", msg.FileId, msg.Chunks[0])
+	mockFileStorage.AssertCalled(t, "PersistChunk", file.DiskPath, msg.Chunks[0])
 
 	t.Cleanup(func() {
 		cancel()
