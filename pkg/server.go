@@ -2,6 +2,7 @@ package rtsync
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"sync"
 	"time"
@@ -57,6 +58,8 @@ func New(db *repository.Queries, s filestorage.Storage, opts Options) *realTimeS
 		db:             db,
 	}
 
+	rts.init()
+
 	rts.serverMux.Handle(PathHttpApi+"/", http.StripPrefix(PathHttpApi, rts.apiHandler()))
 	rts.serverMux.Handle(PathHttpAuth+"/", http.StripPrefix(PathHttpAuth, rts.authHandler()))
 	rts.serverMux.HandleFunc(PathWebSocket, rts.wsHandler)
@@ -64,6 +67,22 @@ func New(db *repository.Queries, s filestorage.Storage, opts Options) *realTimeS
 	go rts.writeChunks()
 
 	return rts
+}
+
+func (rts *realTimeSyncServer) init() {
+	files, err := rts.db.FetchAllFiles(rts.ctx)
+	if err != nil {
+		log.Panicf("error while fetching all files, %v\n", err)
+	}
+
+	for _, file := range files {
+		content, err := rts.storage.ReadObject(file.DiskPath)
+		if err != nil {
+			log.Panicf("error while reading file, %v\n", err)
+		}
+
+		rts.files[file.ID] = string(content)
+	}
 }
 
 func (rts *realTimeSyncServer) Close() error {

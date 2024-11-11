@@ -55,6 +55,43 @@ func (q *Queries) DeleteFile(ctx context.Context, id int64) error {
 	return err
 }
 
+const fetchAllFiles = `-- name: FetchAllFiles :many
+SELECT id, disk_path, workspace_path, mime_type, hash, created_at, updated_at, workspace_id
+FROM files
+`
+
+func (q *Queries) FetchAllFiles(ctx context.Context) ([]File, error) {
+	rows, err := q.db.QueryContext(ctx, fetchAllFiles)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []File
+	for rows.Next() {
+		var i File
+		if err := rows.Scan(
+			&i.ID,
+			&i.DiskPath,
+			&i.WorkspacePath,
+			&i.MimeType,
+			&i.Hash,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.WorkspaceID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const fetchFile = `-- name: FetchFile :one
 SELECT id, disk_path, workspace_path, mime_type, hash, created_at, updated_at, workspace_id
 FROM files

@@ -19,6 +19,10 @@ SELECT *
 FROM files
 WHERE workspace_id = ?;
 
+-- name: FetchAllFiles :many
+SELECT *
+FROM files;
+
 -- name: DeleteFile :exec
 DELETE FROM files
 WHERE id = ?;
