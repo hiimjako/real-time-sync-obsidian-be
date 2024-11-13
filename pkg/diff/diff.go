@@ -12,11 +12,11 @@ const (
 )
 
 type DiffChunk struct {
-	Type Operation
+	Type Operation `json:"type"`
 	// Position indicates the position immediately after the last valid character, inclusive.
-	Position int64
-	Text     string
-	Len      int64
+	Position int64  `json:"position"`
+	Text     string `json:"text"`
+	Len      int64  `json:"len"`
 }
 
 func ComputeDiff(oldText, newText string) []DiffChunk {

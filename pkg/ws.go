@@ -17,8 +17,8 @@ type InternalWSMessage struct {
 }
 
 type DiffChunkMessage struct {
-	FileId int64
-	Chunks []diff.DiffChunk
+	FileId int64            `json:"fileId"`
+	Chunks []diff.DiffChunk `json:"chunks"`
 }
 
 func (rts *realTimeSyncServer) wsHandler(w http.ResponseWriter, r *http.Request) {
