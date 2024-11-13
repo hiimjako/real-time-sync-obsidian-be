@@ -35,7 +35,7 @@ type realTimeSyncServer struct {
 	serverMux      *http.ServeMux
 	subscribersMu  sync.Mutex
 	subscribers    map[*subscriber]struct{}
-	files          map[int64]string
+	files          map[int64]FileWithContent
 	storageQueue   chan DiffChunkMessage
 	storage        filestorage.Storage
 	db             *repository.Queries
@@ -52,7 +52,7 @@ func New(db *repository.Queries, s filestorage.Storage, opts Options) *realTimeS
 		serverMux:      http.NewServeMux(),
 		publishLimiter: rate.NewLimiter(rate.Every(100*time.Millisecond), 8),
 		subscribers:    make(map[*subscriber]struct{}),
-		files:          make(map[int64]string),
+		files:          make(map[int64]FileWithContent),
 		storageQueue:   make(chan DiffChunkMessage, 128),
 		storage:        s,
 		db:             db,
@@ -81,7 +81,10 @@ func (rts *realTimeSyncServer) init() {
 			log.Panicf("error while reading file, %v\n", err)
 		}
 
-		rts.files[file.ID] = string(content)
+		rts.files[file.ID] = FileWithContent{
+			File:    file,
+			Content: string(content),
+		}
 	}
 }
 

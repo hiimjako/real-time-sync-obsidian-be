@@ -85,12 +85,15 @@ func (rts *realTimeSyncServer) subscribe(w http.ResponseWriter, r *http.Request)
 func (rts *realTimeSyncServer) processMessage(s *subscriber, data DiffChunkMessage) {
 	rts.mut.Lock()
 
-	localCopy := rts.files[data.FileId]
+	file := rts.files[data.FileId]
+	localCopy := file.Content
 	for _, d := range data.Chunks {
 		localCopy = diff.ApplyDiff(localCopy, d)
 	}
-	diffs := diff.ComputeDiff(rts.files[data.FileId], localCopy)
-	rts.files[data.FileId] = localCopy
+	diffs := diff.ComputeDiff(file.Content, localCopy)
+
+	file.Content = localCopy
+	rts.files[data.FileId] = file
 
 	rts.mut.Unlock()
 

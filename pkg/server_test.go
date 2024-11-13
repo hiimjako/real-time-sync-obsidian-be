@@ -40,5 +40,17 @@ func TestNew(t *testing.T) {
 	t.Cleanup(func() { server.Close() })
 
 	assert.Len(t, server.files, 1)
-	assert.Equal(t, string(fileContent), server.files[file.ID])
+	assert.Equal(t, FileWithContent{
+		File: repository.File{
+			ID:            1,
+			DiskPath:      "disk_path",
+			WorkspacePath: "workspace_path",
+			MimeType:      "text/plain; charset=utf-8",
+			Hash:          "123",
+			WorkspaceID:   1,
+			CreatedAt:     server.files[file.ID].CreatedAt,
+			UpdatedAt:     server.files[file.ID].UpdatedAt,
+		},
+		Content: string(fileContent),
+	}, server.files[file.ID])
 }
