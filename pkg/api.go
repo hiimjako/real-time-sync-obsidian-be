@@ -18,7 +18,7 @@ type CreateFileBody struct {
 
 type FileWithContent struct {
 	repository.File
-	Content []byte `json:"content"`
+	Content string `json:"content"`
 }
 
 const (
@@ -94,7 +94,7 @@ func (rts *realTimeSyncServer) fetchFileHandler(w http.ResponseWriter, r *http.R
 
 	fileWithContent := FileWithContent{
 		File:    file,
-		Content: fileContent,
+		Content: string(fileContent),
 	}
 
 	w.Header().Set("Content-Type", "application/json")

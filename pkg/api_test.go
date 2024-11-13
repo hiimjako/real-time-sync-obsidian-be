@@ -146,7 +146,7 @@ func Test_fetchFileHandler(t *testing.T) {
 			UpdatedAt:     body.UpdatedAt,
 			WorkspaceID:   workspaceID,
 		},
-		Content: []byte("here a new file 2!"),
+		Content: "here a new file 2!",
 	}, body)
 
 	// check mock assertions
