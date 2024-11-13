@@ -94,14 +94,16 @@ func (rts *realTimeSyncServer) processMessage(s *subscriber, data DiffChunkMessa
 
 	rts.mut.Unlock()
 
-	rts.storageQueue <- data
-	rts.broadcastPublish(InternalWSMessage{
-		SenderId: s.clientId,
-		Message: DiffChunkMessage{
-			FileId: data.FileId,
-			Chunks: diffs,
-		},
-	})
+	if len(diffs) > 0 {
+		rts.storageQueue <- data
+		rts.broadcastPublish(InternalWSMessage{
+			SenderId: s.clientId,
+			Message: DiffChunkMessage{
+				FileId: data.FileId,
+				Chunks: diffs,
+			},
+		})
+	}
 }
 
 // broadcastPublish publishes the msg to all subscribers.
