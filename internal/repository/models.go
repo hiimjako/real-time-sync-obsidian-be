@@ -17,6 +17,7 @@ type File struct {
 	Hash          string    `json:"hash"`
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`
+	Version       int64     `json:"version"`
 	WorkspaceID   int64     `json:"workspace_id"`
 }
 

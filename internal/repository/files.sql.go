@@ -12,7 +12,7 @@ import (
 const addFile = `-- name: AddFile :one
 INSERT INTO files (disk_path, workspace_path, mime_type, hash, workspace_id)
 VALUES (?, ?, ?, ?, ?)
-RETURNING id, disk_path, workspace_path, mime_type, hash, created_at, updated_at, workspace_id
+RETURNING id, disk_path, workspace_path, mime_type, hash, created_at, updated_at, version, workspace_id
 `
 
 type AddFileParams struct {
@@ -40,6 +40,7 @@ func (q *Queries) AddFile(ctx context.Context, arg AddFileParams) (File, error) 
 		&i.Hash,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Version,
 		&i.WorkspaceID,
 	)
 	return i, err
@@ -56,7 +57,7 @@ func (q *Queries) DeleteFile(ctx context.Context, id int64) error {
 }
 
 const fetchAllFiles = `-- name: FetchAllFiles :many
-SELECT id, disk_path, workspace_path, mime_type, hash, created_at, updated_at, workspace_id
+SELECT id, disk_path, workspace_path, mime_type, hash, created_at, updated_at, version, workspace_id
 FROM files
 `
 
@@ -77,6 +78,7 @@ func (q *Queries) FetchAllFiles(ctx context.Context) ([]File, error) {
 			&i.Hash,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Version,
 			&i.WorkspaceID,
 		); err != nil {
 			return nil, err
@@ -93,7 +95,7 @@ func (q *Queries) FetchAllFiles(ctx context.Context) ([]File, error) {
 }
 
 const fetchFile = `-- name: FetchFile :one
-SELECT id, disk_path, workspace_path, mime_type, hash, created_at, updated_at, workspace_id
+SELECT id, disk_path, workspace_path, mime_type, hash, created_at, updated_at, version, workspace_id
 FROM files
 WHERE id = ?
 LIMIT 1
@@ -110,13 +112,14 @@ func (q *Queries) FetchFile(ctx context.Context, id int64) (File, error) {
 		&i.Hash,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Version,
 		&i.WorkspaceID,
 	)
 	return i, err
 }
 
 const fetchFileFromWorkspacePath = `-- name: FetchFileFromWorkspacePath :one
-SELECT id, disk_path, workspace_path, mime_type, hash, created_at, updated_at, workspace_id
+SELECT id, disk_path, workspace_path, mime_type, hash, created_at, updated_at, version, workspace_id
 FROM files
 WHERE workspace_path = ?
 LIMIT 1
@@ -133,13 +136,14 @@ func (q *Queries) FetchFileFromWorkspacePath(ctx context.Context, workspacePath 
 		&i.Hash,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Version,
 		&i.WorkspaceID,
 	)
 	return i, err
 }
 
 const fetchFiles = `-- name: FetchFiles :many
-SELECT id, disk_path, workspace_path, mime_type, hash, created_at, updated_at, workspace_id
+SELECT id, disk_path, workspace_path, mime_type, hash, created_at, updated_at, version, workspace_id
 FROM files
 WHERE workspace_id = ?
 `
@@ -161,6 +165,7 @@ func (q *Queries) FetchFiles(ctx context.Context, workspaceID int64) ([]File, er
 			&i.Hash,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Version,
 			&i.WorkspaceID,
 		); err != nil {
 			return nil, err
@@ -177,7 +182,7 @@ func (q *Queries) FetchFiles(ctx context.Context, workspaceID int64) ([]File, er
 }
 
 const fetchWorkspaceFiles = `-- name: FetchWorkspaceFiles :many
-SELECT id, disk_path, workspace_path, mime_type, hash, created_at, updated_at, workspace_id
+SELECT id, disk_path, workspace_path, mime_type, hash, created_at, updated_at, version, workspace_id
 FROM files
 WHERE workspace_id = ?
 `
@@ -199,6 +204,7 @@ func (q *Queries) FetchWorkspaceFiles(ctx context.Context, workspaceID int64) ([
 			&i.Hash,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Version,
 			&i.WorkspaceID,
 		); err != nil {
 			return nil, err
