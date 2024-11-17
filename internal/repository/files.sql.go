@@ -9,13 +9,13 @@ import (
 	"context"
 )
 
-const addFile = `-- name: AddFile :one
+const createFile = `-- name: CreateFile :one
 INSERT INTO files (disk_path, workspace_path, mime_type, hash, workspace_id)
 VALUES (?, ?, ?, ?, ?)
 RETURNING id, disk_path, workspace_path, mime_type, hash, created_at, updated_at, version, workspace_id
 `
 
-type AddFileParams struct {
+type CreateFileParams struct {
 	DiskPath      string `json:"diskPath"`
 	WorkspacePath string `json:"workspacePath"`
 	MimeType      string `json:"mimeType"`
@@ -23,8 +23,8 @@ type AddFileParams struct {
 	WorkspaceID   int64  `json:"workspaceId"`
 }
 
-func (q *Queries) AddFile(ctx context.Context, arg AddFileParams) (File, error) {
-	row := q.db.QueryRowContext(ctx, addFile,
+func (q *Queries) CreateFile(ctx context.Context, arg CreateFileParams) (File, error) {
+	row := q.db.QueryRowContext(ctx, createFile,
 		arg.DiskPath,
 		arg.WorkspacePath,
 		arg.MimeType,

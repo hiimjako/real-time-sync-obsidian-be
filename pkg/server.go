@@ -36,7 +36,8 @@ type realTimeSyncServer struct {
 	subscribersMu  sync.Mutex
 	subscribers    map[*subscriber]struct{}
 	files          map[int64]FileWithContent
-	storageQueue   chan DiffChunkMessage
+	storageQueue   chan ChunkMessage
+	eventQueue     chan EventMessage
 	storage        filestorage.Storage
 	db             *repository.Queries
 }
@@ -53,7 +54,8 @@ func New(db *repository.Queries, s filestorage.Storage, opts Options) *realTimeS
 		publishLimiter: rate.NewLimiter(rate.Every(100*time.Millisecond), 8),
 		subscribers:    make(map[*subscriber]struct{}),
 		files:          make(map[int64]FileWithContent),
-		storageQueue:   make(chan DiffChunkMessage, 128),
+		storageQueue:   make(chan ChunkMessage, 128),
+		eventQueue:     make(chan EventMessage, 128),
 		storage:        s,
 		db:             db,
 	}

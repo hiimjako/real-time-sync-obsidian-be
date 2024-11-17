@@ -16,7 +16,7 @@ func TestNew(t *testing.T) {
 	db := testutils.CreateDB(t)
 	repo := repository.New(db)
 
-	file, err := repo.AddFile(context.Background(), repository.AddFileParams{
+	file, err := repo.CreateFile(context.Background(), repository.CreateFileParams{
 		DiskPath:      "disk_path",
 		WorkspacePath: "workspace_path",
 		MimeType:      "text/plain; charset=utf-8",

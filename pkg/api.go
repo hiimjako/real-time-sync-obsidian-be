@@ -134,7 +134,7 @@ func (rts *realTimeSyncServer) createFileHandler(w http.ResponseWriter, r *http.
 	mimeType := http.DetectContentType(data.Content)
 	workspaceID := middleware.WorkspaceIDFromCtx(r.Context())
 
-	file, err := rts.db.AddFile(r.Context(), repository.AddFileParams{
+	file, err := rts.db.CreateFile(r.Context(), repository.CreateFileParams{
 		DiskPath:      diskPath,
 		WorkspacePath: data.Path,
 		MimeType:      mimeType,
@@ -145,6 +145,13 @@ func (rts *realTimeSyncServer) createFileHandler(w http.ResponseWriter, r *http.
 	if err != nil {
 		http.Error(w, ErrInvalidFile, http.StatusInternalServerError)
 		return
+	}
+
+	rts.eventQueue <- EventMessage{
+		WsMessageHeader: WsMessageHeader{
+			FileId: file.ID,
+			Type:   CreateEventType,
+		},
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -184,6 +191,13 @@ func (rts *realTimeSyncServer) deleteFileHandler(w http.ResponseWriter, r *http.
 	if err != nil {
 		http.Error(w, ErrInvalidFile, http.StatusInternalServerError)
 		return
+	}
+
+	rts.eventQueue <- EventMessage{
+		WsMessageHeader: WsMessageHeader{
+			FileId: file.ID,
+			Type:   DeleteEventType,
+		},
 	}
 
 	w.WriteHeader(http.StatusNoContent)

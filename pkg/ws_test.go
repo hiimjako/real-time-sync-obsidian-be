@@ -38,7 +38,7 @@ func Test_wsHandler(t *testing.T) {
 	reciver, _, err := websocket.Dial(ctx, url, nil)
 	require.NoError(t, err)
 
-	file, err := repo.AddFile(context.Background(), repository.AddFileParams{
+	file, err := repo.CreateFile(context.Background(), repository.CreateFileParams{
 		DiskPath:      "disk_path",
 		WorkspacePath: "workspace_path",
 		MimeType:      "",
@@ -47,8 +47,10 @@ func Test_wsHandler(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	msg := DiffChunkMessage{
-		FileId: file.ID,
+	msg := ChunkMessage{
+		WsMessageHeader: WsMessageHeader{
+			FileId: file.ID,
+		},
 		Chunks: []diff.DiffChunk{
 			{
 				Position: 0,
@@ -65,15 +67,16 @@ func Test_wsHandler(t *testing.T) {
 	assert.NoError(t, err)
 	go func() {
 		// should not recive any message
-		var recMsg DiffChunkMessage
-		err = wsjson.Read(ctx, sender, &recMsg)
+		var recMsg ChunkMessage
+		err := wsjson.Read(ctx, sender, &recMsg)
 		assert.Error(t, err)
 	}()
 
-	var recMsg DiffChunkMessage
+	var recMsg ChunkMessage
 	err = wsjson.Read(ctx, reciver, &recMsg)
 	assert.NoError(t, err)
 
+	msg.SenderId = recMsg.SenderId
 	assert.Equal(t, msg, recMsg)
 
 	time.Sleep(10 * time.Millisecond)

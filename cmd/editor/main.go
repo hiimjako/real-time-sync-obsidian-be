@@ -65,7 +65,7 @@ func pollText(s *screen.Screen) {
 	go func() {
 		// listen for changes in ws
 		for {
-			var msg rtsync.DiffChunkMessage
+			var msg rtsync.ChunkMessage
 			err = wsjson.Read(ctx, ws, &msg)
 			logOnError(err)
 
@@ -94,8 +94,10 @@ func pollText(s *screen.Screen) {
 				continue
 			}
 
-			err = wsjson.Write(ctx, ws, rtsync.DiffChunkMessage{
-				FileId: int64(*fileId),
+			err = wsjson.Write(ctx, ws, rtsync.ChunkMessage{
+				WsMessageHeader: rtsync.WsMessageHeader{
+					FileId: int64(*fileId),
+				},
 				Chunks: d,
 			})
 			logOnError(err)

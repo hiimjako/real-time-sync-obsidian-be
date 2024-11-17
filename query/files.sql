@@ -1,4 +1,4 @@
--- name: AddFile :one
+-- name: CreateFile :one
 INSERT INTO files (disk_path, workspace_path, mime_type, hash, workspace_id)
 VALUES (?, ?, ?, ?, ?)
 RETURNING *;
