@@ -219,3 +219,15 @@ func (q *Queries) FetchWorkspaceFiles(ctx context.Context, workspaceID int64) ([
 	}
 	return items, nil
 }
+
+const updateUpdatedAt = `-- name: UpdateUpdatedAt :exec
+UPDATE files
+SET 
+    updated_at = CURRENT_TIMESTAMP
+WHERE id = ?
+`
+
+func (q *Queries) UpdateUpdatedAt(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, updateUpdatedAt, id)
+	return err
+}

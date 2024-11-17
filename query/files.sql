@@ -33,3 +33,10 @@ FROM files
 WHERE workspace_path = ?
 LIMIT 1;
 
+-- name: UpdateUpdatedAt :exec
+UPDATE files
+SET 
+    updated_at = CURRENT_TIMESTAMP
+WHERE id = ?;
+
+

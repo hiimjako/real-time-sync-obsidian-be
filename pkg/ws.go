@@ -17,8 +17,9 @@ type InternalWSMessage struct {
 }
 
 type DiffChunkMessage struct {
-	FileId int64            `json:"fileId"`
-	Chunks []diff.DiffChunk `json:"chunks"`
+	FileId               int64            `json:"fileId"`
+	Chunks               []diff.DiffChunk `json:"chunks"`
+	LastProcessedVersion int64            `json:"lastProcessedVersion"`
 }
 
 func (rts *realTimeSyncServer) wsHandler(w http.ResponseWriter, r *http.Request) {
@@ -84,6 +85,7 @@ func (rts *realTimeSyncServer) subscribe(w http.ResponseWriter, r *http.Request)
 
 func (rts *realTimeSyncServer) processMessage(s *subscriber, data DiffChunkMessage) {
 	rts.mut.Lock()
+	defer rts.mut.Unlock()
 
 	file := rts.files[data.FileId]
 	localCopy := file.Content
@@ -94,8 +96,6 @@ func (rts *realTimeSyncServer) processMessage(s *subscriber, data DiffChunkMessa
 
 	file.Content = localCopy
 	rts.files[data.FileId] = file
-
-	rts.mut.Unlock()
 
 	if len(diffs) > 0 {
 		rts.storageQueue <- data
@@ -142,6 +142,11 @@ func (rts *realTimeSyncServer) writeChunks() {
 				}
 
 				err = rts.storage.PersistChunk(file.DiskPath, d)
+				if err != nil {
+					log.Println(err)
+				}
+
+				err = rts.db.UpdateUpdatedAt(context.Background(), data.FileId)
 				if err != nil {
 					log.Println(err)
 				}
