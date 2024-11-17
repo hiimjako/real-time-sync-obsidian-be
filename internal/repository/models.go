@@ -11,20 +11,20 @@ import (
 
 type File struct {
 	ID            int64     `json:"id"`
-	DiskPath      string    `json:"disk_path"`
-	WorkspacePath string    `json:"workspace_path"`
-	MimeType      string    `json:"mime_type"`
+	DiskPath      string    `json:"diskPath"`
+	WorkspacePath string    `json:"workspacePath"`
+	MimeType      string    `json:"mimeType"`
 	Hash          string    `json:"hash"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedAt     time.Time `json:"updated_at"`
+	CreatedAt     time.Time `json:"createdAt"`
+	UpdatedAt     time.Time `json:"updatedAt"`
 	Version       int64     `json:"version"`
-	WorkspaceID   int64     `json:"workspace_id"`
+	WorkspaceID   int64     `json:"workspaceId"`
 }
 
 type Workspace struct {
 	ID        int64        `json:"id"`
 	Name      string       `json:"name"`
 	Password  string       `json:"password"`
-	CreatedAt sql.NullTime `json:"created_at"`
-	UpdatedAt sql.NullTime `json:"updated_at"`
+	CreatedAt sql.NullTime `json:"createdAt"`
+	UpdatedAt sql.NullTime `json:"updatedAt"`
 }

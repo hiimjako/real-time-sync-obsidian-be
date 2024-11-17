@@ -16,11 +16,11 @@ RETURNING id, disk_path, workspace_path, mime_type, hash, created_at, updated_at
 `
 
 type AddFileParams struct {
-	DiskPath      string `json:"disk_path"`
-	WorkspacePath string `json:"workspace_path"`
-	MimeType      string `json:"mime_type"`
+	DiskPath      string `json:"diskPath"`
+	WorkspacePath string `json:"workspacePath"`
+	MimeType      string `json:"mimeType"`
 	Hash          string `json:"hash"`
-	WorkspaceID   int64  `json:"workspace_id"`
+	WorkspaceID   int64  `json:"workspaceId"`
 }
 
 func (q *Queries) AddFile(ctx context.Context, arg AddFileParams) (File, error) {
