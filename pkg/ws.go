@@ -16,6 +16,7 @@ const (
 	ChunkEventType  MessageType = iota
 	CreateEventType MessageType = iota
 	DeleteEventType MessageType = iota
+	RenameEventType MessageType = iota
 )
 
 type WsMessageHeader struct {

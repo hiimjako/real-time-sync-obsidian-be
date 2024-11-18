@@ -109,7 +109,7 @@ func (s *subscriber) Listen() {
 				chunk.SenderId = s.clientId
 
 				s.onChunkMessage(chunk)
-			case CreateEventType, DeleteEventType:
+			case RenameEventType, CreateEventType, DeleteEventType:
 				var event EventMessage
 				err := mapToStruct(msg, &event)
 				if err != nil {

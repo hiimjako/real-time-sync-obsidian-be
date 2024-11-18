@@ -342,3 +342,109 @@ func Test_deleteFileHandler(t *testing.T) {
 		mockFileStorage.AssertNotCalled(t, "DeleteObject")
 	})
 }
+
+// Test_updateFileHandler tests the updateFileHandler using mocked storage
+func Test_updateFileHandler(t *testing.T) {
+	mockFileStorage := new(filestorage.MockFileStorage)
+	db := testutils.CreateDB(t)
+	repo := repository.New(db)
+	options := Options{JWTSecret: []byte("secret")}
+	server := New(repo, mockFileStorage, options)
+
+	t.Cleanup(func() { server.Close() })
+
+	t.Run("successfully rename a file", func(t *testing.T) {
+		workspaceID := int64(10)
+		data := CreateFileBody{
+			Path:    "/home/file",
+			Content: []byte("here a new file!"),
+		}
+
+		diskPath := "/foo/bar"
+		mockFileStorage.On("CreateObject", data.Content).Return(diskPath, nil)
+
+		// creating file
+		res, createBody := testutils.DoRequest[repository.File](
+			t,
+			server,
+			http.MethodPost,
+			PathHttpApi+"/file",
+			data,
+			testutils.WithAuthHeader(options.JWTSecret, workspaceID),
+		)
+		assert.Equal(t, http.StatusCreated, res.Code)
+
+		// updating a file
+		updateData := UpdateFileBody{
+			Path: "/home/new-fancy-name",
+		}
+		res, updateBody := testutils.DoRequest[string](
+			t,
+			server,
+			http.MethodPatch,
+			PathHttpApi+"/file/"+strconv.Itoa(int(createBody.ID)),
+			updateData,
+			testutils.WithAuthHeader(options.JWTSecret, workspaceID),
+		)
+		assert.Equal(t, http.StatusNoContent, res.Code)
+		assert.Equal(t, "", updateBody)
+
+		// check db
+		files, err := repo.FetchWorkspaceFiles(context.Background(), workspaceID)
+		assert.NoError(t, err)
+		assert.Len(t, files, 1)
+		assert.Equal(t, repository.File{
+			ID:            1,
+			DiskPath:      diskPath,
+			WorkspacePath: updateData.Path,
+			MimeType:      "text/plain; charset=utf-8",
+			Hash:          filestorage.GenerateHash(data.Content),
+			CreatedAt:     files[0].CreatedAt,
+			UpdatedAt:     files[0].UpdatedAt,
+			WorkspaceID:   workspaceID,
+		}, files[0])
+
+		// check mock assertions
+		mockFileStorage.AssertCalled(t, "CreateObject", data.Content)
+	})
+
+	t.Run("unauthorize to rename a file of other workspace", func(t *testing.T) {
+		workspaceID := int64(10)
+		data := CreateFileBody{
+			Path:    "/home/file/2",
+			Content: []byte("here a new file!"),
+		}
+
+		// creating file
+		res, createBody := testutils.DoRequest[repository.File](
+			t,
+			server,
+			http.MethodPost,
+			PathHttpApi+"/file",
+			data,
+			testutils.WithAuthHeader(options.JWTSecret, workspaceID),
+		)
+		assert.Equal(t, http.StatusCreated, res.Code)
+
+		// updating a file
+		updateData := UpdateFileBody{
+			Path: "/home/new-fancy-name",
+		}
+		anotherWorkspaceID := int64(20)
+		res, deleteBody := testutils.DoRequest[string](
+			t,
+			server,
+			http.MethodPatch,
+			PathHttpApi+"/file/"+strconv.Itoa(int(createBody.ID)),
+			updateData,
+			testutils.WithAuthHeader(options.JWTSecret, anotherWorkspaceID),
+		)
+		assert.Equal(t, http.StatusNotFound, res.Code)
+		assert.Equal(t, ErrNotExistingFile, deleteBody)
+
+		// check db
+		file, err := repo.FetchFile(context.Background(), createBody.ID)
+		assert.NoError(t, err)
+		assert.Equal(t, data.Path, file.WorkspacePath)
+	})
+}

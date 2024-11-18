@@ -16,6 +16,10 @@ type CreateFileBody struct {
 	Content []byte `json:"content"`
 }
 
+type UpdateFileBody struct {
+	Path string `json:"path"`
+}
+
 type FileWithContent struct {
 	repository.File
 	Content string `json:"content"`
@@ -34,12 +38,13 @@ func (rts *realTimeSyncServer) apiHandler() http.Handler {
 	router.HandleFunc("GET /file/{id}", rts.fetchFileHandler)
 	router.HandleFunc("POST /file", rts.createFileHandler)
 	router.HandleFunc("DELETE /file/{id}", rts.deleteFileHandler)
+	router.HandleFunc("PATCH /file/{id}", rts.updateFileHandler)
 
 	stack := middleware.CreateStack(
 		middleware.Logging,
 		middleware.Cors(middleware.CorsOptions{
 			AllowedOrigins: []string{"127.0.0.1", "app://obsidian.md"},
-			AllowedMethods: []string{"HEAD", "GET", "POST", "OPTIONS", "DELETE"},
+			AllowedMethods: []string{"HEAD", "GET", "POST", "OPTIONS", "DELETE", "PATCH"},
 			AllowedHeaders: []string{"Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization"},
 		}),
 		middleware.IsAuthenticated(middleware.AuthOptions{SecretKey: rts.jwtSecret}),
@@ -181,6 +186,55 @@ func (rts *realTimeSyncServer) deleteFileHandler(w http.ResponseWriter, r *http.
 	}
 
 	err = rts.db.DeleteFile(r.Context(), int64(fileId))
+	if err != nil {
+		http.Error(w, ErrInvalidFile, http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (rts *realTimeSyncServer) updateFileHandler(w http.ResponseWriter, r *http.Request) {
+	fileId, err := strconv.Atoi(r.PathValue("id"))
+
+	if fileId == 0 || err != nil {
+		http.Error(w, "invalid file id", http.StatusBadRequest)
+		return
+	}
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "error reading request body", http.StatusInternalServerError)
+		return
+	}
+
+	var data UpdateFileBody
+	if err = json.Unmarshal(body, &data); err != nil {
+		http.Error(w, "error parsing JSON", http.StatusBadRequest)
+		return
+	}
+
+	if data.Path == "" {
+		http.Error(w, "invalid path ''", http.StatusBadRequest)
+		return
+	}
+
+	file, err := rts.db.FetchFile(r.Context(), int64(fileId))
+	if err != nil {
+		http.Error(w, ErrNotExistingFile, http.StatusNotFound)
+		return
+	}
+
+	workspaceID := middleware.WorkspaceIDFromCtx(r.Context())
+	if file.WorkspaceID != workspaceID {
+		http.Error(w, ErrNotExistingFile, http.StatusNotFound)
+		return
+	}
+
+	err = rts.db.UpdateWorkspacePath(r.Context(), repository.UpdateWorkspacePathParams{
+		WorkspacePath: data.Path,
+		ID:            file.ID,
+	})
 	if err != nil {
 		http.Error(w, ErrInvalidFile, http.StatusInternalServerError)
 		return

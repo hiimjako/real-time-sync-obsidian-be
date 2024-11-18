@@ -231,3 +231,20 @@ func (q *Queries) UpdateUpdatedAt(ctx context.Context, id int64) error {
 	_, err := q.db.ExecContext(ctx, updateUpdatedAt, id)
 	return err
 }
+
+const updateWorkspacePath = `-- name: UpdateWorkspacePath :exec
+UPDATE files
+SET 
+    workspace_path = ?
+WHERE id = ?
+`
+
+type UpdateWorkspacePathParams struct {
+	WorkspacePath string `json:"workspacePath"`
+	ID            int64  `json:"id"`
+}
+
+func (q *Queries) UpdateWorkspacePath(ctx context.Context, arg UpdateWorkspacePathParams) error {
+	_, err := q.db.ExecContext(ctx, updateWorkspacePath, arg.WorkspacePath, arg.ID)
+	return err
+}

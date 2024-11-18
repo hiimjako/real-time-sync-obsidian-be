@@ -39,4 +39,9 @@ SET
     updated_at = CURRENT_TIMESTAMP
 WHERE id = ?;
 
+-- name: UpdateWorkspacePath :exec
+UPDATE files
+SET 
+    workspace_path = ?
+WHERE id = ?;
 
