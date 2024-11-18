@@ -49,7 +49,7 @@ func (rts *realTimeSyncServer) wsHandler(w http.ResponseWriter, r *http.Request)
 }
 
 func (rts *realTimeSyncServer) subscribe(w http.ResponseWriter, r *http.Request) error {
-	s, err := NewSubscriber(rts.ctx, w, r, rts.processWsMessage)
+	s, err := NewSubscriber(rts.ctx, w, r, rts.onChunkMessage, rts.onEventMessage)
 	if err != nil {
 		return err
 	}
@@ -62,7 +62,11 @@ func (rts *realTimeSyncServer) subscribe(w http.ResponseWriter, r *http.Request)
 	return nil
 }
 
-func (rts *realTimeSyncServer) processWsMessage(data ChunkMessage) {
+func (rts *realTimeSyncServer) onEventMessage(event EventMessage) {
+	rts.broadcastEventMessage(event)
+}
+
+func (rts *realTimeSyncServer) onChunkMessage(data ChunkMessage) {
 	rts.mut.Lock()
 	defer rts.mut.Unlock()
 

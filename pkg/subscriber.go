@@ -2,6 +2,7 @@ package rtsync
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -20,19 +21,21 @@ type subscriber struct {
 	r    *http.Request
 	ctx  context.Context
 
-	isConnected   atomic.Bool
-	clientId      string
-	chunkMsgQueue chan ChunkMessage
-	eventMsgQueue chan EventMessage
-	closeSlow     func()
-	onMessage     func(ChunkMessage)
+	isConnected    atomic.Bool
+	clientId       string
+	chunkMsgQueue  chan ChunkMessage
+	eventMsgQueue  chan EventMessage
+	closeSlow      func()
+	onChunkMessage func(ChunkMessage)
+	onEventMessage func(EventMessage)
 }
 
 func NewSubscriber(
 	ctx context.Context,
 	w http.ResponseWriter,
 	r *http.Request,
-	onMessage func(ChunkMessage),
+	onChunkMessage func(ChunkMessage),
+	onEventMessage func(EventMessage),
 ) (*subscriber, error) {
 	c, err := websocket.Accept(w, r, &websocket.AcceptOptions{
 		OriginPatterns: []string{"127.0.0.1", "obsidian.md"},
@@ -56,7 +59,8 @@ func NewSubscriber(
 				c.Close(websocket.StatusPolicyViolation, "connection too slow to keep up with messages")
 			}
 		},
-		onMessage: onMessage,
+		onChunkMessage: onChunkMessage,
+		onEventMessage: onEventMessage,
 	}
 
 	s.isConnected.Store(true)
@@ -81,12 +85,42 @@ func (s *subscriber) Listen() {
 				return
 			}
 
-			data, err := s.ReadMessage()
+			msg, err := s.WaitMessage()
 			if err != nil {
 				log.Println(err)
+				continue
 			}
 
-			s.onMessage(data)
+			msgType, err := s.MessageType(msg)
+			if err != nil {
+				log.Println(err)
+				continue
+			}
+
+			switch msgType {
+			case ChunkEventType:
+				var chunk ChunkMessage
+				err := mapToStruct(msg, &chunk)
+				if err != nil {
+					log.Println(err)
+					continue
+				}
+
+				chunk.SenderId = s.clientId
+
+				s.onChunkMessage(chunk)
+			case CreateEventType, DeleteEventType:
+				var event EventMessage
+				err := mapToStruct(msg, &event)
+				if err != nil {
+					log.Println(err)
+					continue
+				}
+
+				event.SenderId = s.clientId
+
+				s.onEventMessage(event)
+			}
 		}
 	}()
 
@@ -125,7 +159,7 @@ func (s *subscriber) Listen() {
 	<-s.ctx.Done()
 }
 
-func (s *subscriber) ReadMessage() (ChunkMessage, error) {
+func (s *subscriber) ParseChunkMessage() (ChunkMessage, error) {
 	var data ChunkMessage
 
 	err := wsjson.Read(s.ctx, s.conn, &data)
@@ -138,13 +172,48 @@ func (s *subscriber) ReadMessage() (ChunkMessage, error) {
 		return data, err
 	}
 
-	if data.FileId <= 0 {
-		return data, fmt.Errorf("missing fileId")
+	return data, err
+}
+
+func (s *subscriber) ParseEventMessage() (EventMessage, error) {
+	var data EventMessage
+
+	err := wsjson.Read(s.ctx, s.conn, &data)
+	if err != nil {
+		if websocket.CloseStatus(err) != -1 || strings.Contains(err.Error(), "EOF") {
+			s.Close()
+			return data, fmt.Errorf("client %s disconnected", s.clientId)
+		}
+
+		return data, err
 	}
 
-	data.SenderId = s.clientId
+	return data, err
+}
 
-	return data, nil
+func (s *subscriber) MessageType(data map[string]any) (int, error) {
+	msgType, ok := data["type"].(float64)
+	if !ok {
+		return 0, fmt.Errorf("type in %+v not present", data)
+	}
+
+	return int(msgType), nil
+}
+
+func (s *subscriber) WaitMessage() (map[string]any, error) {
+	var msg map[string]any
+
+	err := wsjson.Read(s.ctx, s.conn, &msg)
+	if err != nil {
+		if websocket.CloseStatus(err) != -1 || strings.Contains(err.Error(), "EOF") {
+			s.Close()
+			return msg, fmt.Errorf("client %s disconnected", s.clientId)
+		}
+
+		return msg, err
+	}
+
+	return msg, nil
 }
 
 func (s *subscriber) WriteMessage(msg any, timeout time.Duration) error {
@@ -152,4 +221,16 @@ func (s *subscriber) WriteMessage(msg any, timeout time.Duration) error {
 	defer cancel()
 
 	return wsjson.Write(ctx, s.conn, msg)
+}
+
+func mapToStruct(data map[string]any, result interface{}) error {
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	if err := json.Unmarshal(jsonData, &result); err != nil {
+		return err
+	}
+	return nil
 }

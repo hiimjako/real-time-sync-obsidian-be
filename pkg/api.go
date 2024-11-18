@@ -147,13 +147,6 @@ func (rts *realTimeSyncServer) createFileHandler(w http.ResponseWriter, r *http.
 		return
 	}
 
-	rts.eventQueue <- EventMessage{
-		WsMessageHeader: WsMessageHeader{
-			FileId: file.ID,
-			Type:   CreateEventType,
-		},
-	}
-
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	if err := json.NewEncoder(w).Encode(file); err != nil {
@@ -191,13 +184,6 @@ func (rts *realTimeSyncServer) deleteFileHandler(w http.ResponseWriter, r *http.
 	if err != nil {
 		http.Error(w, ErrInvalidFile, http.StatusInternalServerError)
 		return
-	}
-
-	rts.eventQueue <- EventMessage{
-		WsMessageHeader: WsMessageHeader{
-			FileId: file.ID,
-			Type:   DeleteEventType,
-		},
 	}
 
 	w.WriteHeader(http.StatusNoContent)

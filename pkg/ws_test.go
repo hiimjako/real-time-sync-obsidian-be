@@ -49,6 +49,7 @@ func Test_wsHandler(t *testing.T) {
 
 	msg := ChunkMessage{
 		WsMessageHeader: WsMessageHeader{
+			Type:   ChunkEventType,
 			FileId: file.ID,
 		},
 		Chunks: []diff.DiffChunk{
@@ -90,3 +91,7 @@ func Test_wsHandler(t *testing.T) {
 		handler.Close()
 	})
 }
+
+// func Test_internalBusProcessor(t *testing.T) {
+//
+// }
