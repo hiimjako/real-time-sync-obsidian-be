@@ -75,60 +75,125 @@ func TestComputeDiff(t *testing.T) {
 }
 
 func TestApplyDiff(t *testing.T) {
-	tests := []struct {
-		name     string
-		text     string
-		expected string
-	}{
-		{
-			name:     "add a chunk",
-			text:     "hello!",
-			expected: "hello world!",
-		},
-		{
-			name:     "add a chunk from empty string",
-			text:     "",
-			expected: " world",
-		},
-		{
-			name:     "add a chunk from 0",
-			text:     "",
-			expected: "test",
-		},
-		{
-			name:     "remove a chunk",
-			text:     "hello world!",
-			expected: "helloworld!",
-		},
-		{
-			name:     "remove a chunk from 0",
-			text:     "test",
-			expected: "",
-		},
-		{
-			name:     "add in middle of word",
-			text:     "wold",
-			expected: "world",
-		},
-	}
+	t.Run("should apply diffs", func(t *testing.T) {
+		tests := []struct {
+			name     string
+			text     string
+			expected string
+		}{
+			{
+				name:     "add a chunk",
+				text:     "hello!",
+				expected: "hello world!",
+			},
+			{
+				name:     "add a chunk from empty string",
+				text:     "",
+				expected: " world",
+			},
+			{
+				name:     "add a chunk from 0",
+				text:     "",
+				expected: "test",
+			},
+			{
+				name:     "remove a chunk",
+				text:     "hello world!",
+				expected: "helloworld!",
+			},
+			{
+				name:     "remove a chunk from 0",
+				text:     "test",
+				expected: "",
+			},
+			{
+				name:     "add in middle of word",
+				text:     "wold",
+				expected: "world",
+			},
+		}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := tt.text
-			diffs := ComputeDiff(tt.text, tt.expected)
-			for _, d := range diffs {
-				s = ApplyDiff(s, d)
-			}
-			assert.Equal(t, tt.expected, s)
-		})
-	}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				s := tt.text
+				diffs := ComputeDiff(tt.text, tt.expected)
+				for _, d := range diffs {
+					s = ApplyDiff(s, d)
+				}
+				assert.Equal(t, tt.expected, s)
+			})
+		}
+	})
 
-	t.Run("remove a chunk from empty string", func(t *testing.T) {
-		assert.Equal(t, "", ApplyDiff("", DiffChunk{
-			Type:     DiffRemove,
-			Len:      4,
-			Text:     "test",
-			Position: 10,
-		}))
+	t.Run("should handle edge cases", func(t *testing.T) {
+		tests := []struct {
+			name     string
+			text     string
+			expected string
+			diffs    []DiffChunk
+		}{
+			{
+				name:     "remove a chunk from empty string",
+				text:     "",
+				expected: "",
+				diffs: []DiffChunk{
+					{
+						Type:     DiffRemove,
+						Position: 10,
+						Text:     "test",
+						Len:      4,
+					},
+				},
+			},
+			{
+				name:     "chunk with long len",
+				text:     "lorem",
+				expected: "lo",
+				diffs: []DiffChunk{
+					{
+						Type:     DiffRemove,
+						Position: 2,
+						Text:     "rem ipsum",
+						Len:      9,
+					},
+				},
+			},
+			{
+				name:     "chunk with high position",
+				text:     "hi",
+				expected: "hi",
+				diffs: []DiffChunk{
+					{
+						Type:     DiffRemove,
+						Position: 3,
+						Text:     "hello",
+						Len:      5,
+					},
+				},
+			},
+			{
+				name:     "chunk with high position at beginning",
+				text:     "hi",
+				expected: "",
+				diffs: []DiffChunk{
+					{
+						Type:     DiffRemove,
+						Position: 0,
+						Text:     "hello",
+						Len:      5,
+					},
+				},
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				s := tt.text
+				for _, d := range tt.diffs {
+					s = ApplyDiff(s, d)
+				}
+				assert.Equal(t, tt.expected, s)
+			})
+		}
 	})
 }

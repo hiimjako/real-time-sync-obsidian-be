@@ -70,10 +70,21 @@ func ApplyDiff(text string, diff DiffChunk) string {
 		}
 
 		if diff.Position == 0 {
-			return text[diff.Len:]
+			start := min(len(text), int(diff.Len))
+			return text[start:]
 		}
 
-		return text[:diff.Position] + text[diff.Position-1+diff.Len+1:]
+		if diff.Position > int64(len(text)) {
+			return text
+		}
+
+		splitStart := diff.Position - 1 + diff.Len + 1
+		if splitStart > int64(len(text)) {
+			return text[:diff.Position]
+		}
+
+		return text[:diff.Position] + text[splitStart:]
 	}
+
 	panic("not reachable")
 }
