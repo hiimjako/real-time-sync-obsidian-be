@@ -66,7 +66,7 @@ func New(db *repository.Queries, s filestorage.Storage, opts Options) *realTimeS
 	rts.serverMux.Handle(PathHttpAuth+"/", http.StripPrefix(PathHttpAuth, rts.authHandler()))
 	rts.serverMux.HandleFunc(PathWebSocket, rts.wsHandler)
 
-	go rts.writeChunks()
+	go rts.internalBusProcessor()
 
 	return rts
 }

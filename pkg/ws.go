@@ -49,7 +49,7 @@ func (rts *realTimeSyncServer) wsHandler(w http.ResponseWriter, r *http.Request)
 }
 
 func (rts *realTimeSyncServer) subscribe(w http.ResponseWriter, r *http.Request) error {
-	s, err := NewSubscriber(rts.ctx, w, r, rts.processChunkMessage, rts.broadcastEventMessage)
+	s, err := NewSubscriber(rts.ctx, w, r, rts.processWsMessage)
 	if err != nil {
 		return err
 	}
@@ -62,7 +62,7 @@ func (rts *realTimeSyncServer) subscribe(w http.ResponseWriter, r *http.Request)
 	return nil
 }
 
-func (rts *realTimeSyncServer) processChunkMessage(data ChunkMessage) {
+func (rts *realTimeSyncServer) processWsMessage(data ChunkMessage) {
 	rts.mut.Lock()
 	defer rts.mut.Unlock()
 
@@ -124,12 +124,12 @@ func (rts *realTimeSyncServer) broadcastEventMessage(msg EventMessage) {
 	}
 }
 
-func (rts *realTimeSyncServer) writeChunks() {
+func (rts *realTimeSyncServer) internalBusProcessor() {
 	for {
 		select {
-		case data := <-rts.storageQueue:
-			for _, d := range data.Chunks {
-				file, err := rts.db.FetchFile(context.Background(), data.FileId)
+		case chunkMsg := <-rts.storageQueue:
+			for _, d := range chunkMsg.Chunks {
+				file, err := rts.db.FetchFile(context.Background(), chunkMsg.FileId)
 				if err != nil {
 					log.Println(err)
 					return
@@ -140,11 +140,13 @@ func (rts *realTimeSyncServer) writeChunks() {
 					log.Println(err)
 				}
 
-				err = rts.db.UpdateUpdatedAt(context.Background(), data.FileId)
+				err = rts.db.UpdateUpdatedAt(context.Background(), chunkMsg.FileId)
 				if err != nil {
 					log.Println(err)
 				}
 			}
+		case event := <-rts.eventQueue:
+			rts.broadcastEventMessage(event)
 		case <-rts.ctx.Done():
 			return
 		}

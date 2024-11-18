@@ -20,21 +20,19 @@ type subscriber struct {
 	r    *http.Request
 	ctx  context.Context
 
-	isConnected    atomic.Bool
-	clientId       string
-	chunkMsgQueue  chan ChunkMessage
-	eventMsgQueue  chan EventMessage
-	closeSlow      func()
-	onChunkMessage func(ChunkMessage)
-	onEventMessage func(EventMessage)
+	isConnected   atomic.Bool
+	clientId      string
+	chunkMsgQueue chan ChunkMessage
+	eventMsgQueue chan EventMessage
+	closeSlow     func()
+	onMessage     func(ChunkMessage)
 }
 
 func NewSubscriber(
 	ctx context.Context,
 	w http.ResponseWriter,
 	r *http.Request,
-	onChunkMessage func(ChunkMessage),
-	onEventMessage func(EventMessage),
+	onMessage func(ChunkMessage),
 ) (*subscriber, error) {
 	c, err := websocket.Accept(w, r, &websocket.AcceptOptions{
 		OriginPatterns: []string{"127.0.0.1", "obsidian.md"},
@@ -51,14 +49,14 @@ func NewSubscriber(
 		ctx:           ctx,
 		isConnected:   atomic.Bool{},
 		chunkMsgQueue: make(chan ChunkMessage, subscriberMessageBuffer),
+		eventMsgQueue: make(chan EventMessage, subscriberMessageBuffer),
 		clientId:      uuid.New().String(),
 		closeSlow: func() {
 			if c != nil {
 				c.Close(websocket.StatusPolicyViolation, "connection too slow to keep up with messages")
 			}
 		},
-		onChunkMessage: onChunkMessage,
-		onEventMessage: onEventMessage,
+		onMessage: onMessage,
 	}
 
 	s.isConnected.Store(true)
@@ -88,7 +86,7 @@ func (s *subscriber) Listen() {
 				log.Println(err)
 			}
 
-			s.onChunkMessage(data)
+			s.onMessage(data)
 		}
 	}()
 
@@ -110,7 +108,10 @@ func (s *subscriber) Listen() {
 					continue
 				}
 
-				s.onEventMessage(eventMsg)
+				err := s.WriteMessage(eventMsg, time.Second*1)
+				if err != nil {
+					log.Println("error writing message to client", err)
+				}
 			case <-s.ctx.Done():
 				s.Close()
 				return
