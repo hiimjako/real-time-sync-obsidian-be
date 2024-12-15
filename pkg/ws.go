@@ -27,6 +27,8 @@ type WsMessageHeader struct {
 
 type EventMessage struct {
 	WsMessageHeader
+	WorkspacePath string `json:"workspacePath"`
+	ObjectType    string `json:"objectType"`
 }
 
 type ChunkMessage struct {
