@@ -43,5 +43,5 @@ services:
 ## Add new migration
 
 ```sh 
-GOOSE_DRIVER=sqlite GOOSE_MIGRATION_DIR=./migrations goose create new_migration_name sql
+GOOSE_DRIVER=sqlite GOOSE_MIGRATION_DIR=./internal/migration/migrations/ goose create new_migration_name sql
 ```

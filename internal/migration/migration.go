@@ -2,48 +2,23 @@ package migration
 
 import (
 	"database/sql"
-	"fmt"
-	"os"
-	"path/filepath"
+	"embed"
 
-	"github.com/pressly/goose"
+	"github.com/pressly/goose/v3"
 )
 
+//go:embed migrations/*.sql
+var migrations embed.FS
+
 func Migrate(db *sql.DB) error {
+	goose.SetBaseFS(migrations)
 	if err := goose.SetDialect("sqlite3"); err != nil {
 		return err
 	}
 
-	rp, err := rootPath()
-	if err != nil {
-		return err
-	}
-
-	if err := goose.Up(db, filepath.Join(rp, "migrations")); err != nil {
+	if err := goose.Up(db, "migrations"); err != nil {
 		return err
 	}
 
 	return nil
-}
-
-func rootPath() (string, error) {
-	wd, err := os.Getwd()
-	if err != nil {
-		return "", err
-	}
-
-	for {
-		goModPath := filepath.Join(wd, "go.mod")
-		if _, err := os.Stat(goModPath); err == nil {
-			return wd + "", nil
-		}
-
-		parentDir := filepath.Dir(wd)
-		if parentDir == wd {
-			break
-		}
-		wd = parentDir
-	}
-
-	return "", fmt.Errorf("no go.mod file found in or below the current directory")
 }
