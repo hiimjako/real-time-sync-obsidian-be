@@ -10,12 +10,15 @@ RUN addgroup -g 501 app \
     && grep app /etc/passwd > /etc/passwd_app
 
 WORKDIR /app
+
+RUN apk update && apk add --no-cache build-base
 RUN go env -w GOMODCACHE=/root/.cache/go-build
+RUN go env -w CGO_ENABLED=1
 
 COPY . .
 
-RUN go mod download \ 
-    && go build -v -o bin/app ./cmd/main.go
+RUN go mod download && \
+    go build -v -o bin/app ./cmd/main.go 
 
 FROM alpine AS build-info
 
@@ -31,7 +34,7 @@ RUN echo "GIT_COMMIT_HASH=$GIT_REV"  > buildinfo && \
     echo "GIT_URL=$GIT_URL"         >> buildinfo && \
     echo "BUILD_DATE=$BUILD_DATE"   >> buildinfo
 
-FROM scratch
+FROM alpine
 
 WORKDIR /go
 
@@ -41,5 +44,4 @@ USER app
 COPY --from=build /app/bin/app /go/bin/app
 COPY --from=build-info /app/buildinfo /go/buildinfo
 
-CMD ["/go/bin/app"]
-
+CMD ["./bin/app"]
