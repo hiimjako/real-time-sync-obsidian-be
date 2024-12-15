@@ -24,8 +24,8 @@ func LoadEnv(paths ...string) *EnvVariables {
 		path = paths[0]
 	}
 
-	if err := godotenv.Load(path); err != nil {
-		log.Println("error loading env file:", err)
+	if err := godotenv.Load(path); err == nil {
+		log.Println("found .env file, overriding envs")
 	}
 
 	var env EnvVariables
