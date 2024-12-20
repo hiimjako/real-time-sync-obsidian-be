@@ -9,7 +9,7 @@ RUN addgroup -g 501 app \
         app \
     && grep app /etc/passwd > /etc/passwd_app
 
-WORKDIR /app
+WORKDIR /build
 
 RUN apk update && apk add --no-cache build-base
 RUN go env -w GOMODCACHE=/root/.cache/go-build
@@ -27,7 +27,7 @@ ARG GIT_VERSION
 ARG GIT_URL
 ARG BUILD_DATE
 
-WORKDIR /app
+WORKDIR /build
 
 RUN echo "GIT_COMMIT_HASH=$GIT_REV"  > buildinfo && \
     echo "GIT_VERSION=$GIT_VERSION" >> buildinfo && \
@@ -36,12 +36,12 @@ RUN echo "GIT_COMMIT_HASH=$GIT_REV"  > buildinfo && \
 
 FROM alpine
 
-WORKDIR /go
+WORKDIR /usr/src/
 
 COPY --from=build /etc/passwd_app /etc/passwd
 USER app
 
-COPY --from=build /app/bin/app /go/bin/app
-COPY --from=build-info /app/buildinfo /go/buildinfo
+COPY --from=build /build/bin/app /usr/src/app
+COPY --from=build-info /build/buildinfo /usr/src/buildinfo
 
-CMD ["./bin/app"]
+CMD ["/usr/src/app"]

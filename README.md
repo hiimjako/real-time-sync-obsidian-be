@@ -33,7 +33,7 @@ services:
     restart: always
     container_name: syncinator
     volumes:
-        - ./data:/data
+        - ./data:/usr/src/data
     ports:
       - 8080:8080
 ```
