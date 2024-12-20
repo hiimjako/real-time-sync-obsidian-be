@@ -39,9 +39,11 @@ FROM alpine
 WORKDIR /usr/src/
 
 COPY --from=build /etc/passwd_app /etc/passwd
-USER app
-
 COPY --from=build /build/bin/app /usr/src/app
 COPY --from=build-info /build/buildinfo /usr/src/buildinfo
+
+RUN mkdir /usr/src/data
+RUN chown -R 501:501 /usr/src/
+USER app
 
 CMD ["/usr/src/app"]
