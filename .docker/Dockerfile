@@ -18,7 +18,8 @@ RUN go env -w CGO_ENABLED=1
 COPY . .
 
 RUN go mod download && \
-    go build -v -o bin/app ./cmd/main.go 
+    go build -v -o bin/app ./cmd/main.go && \
+    go build -v -o bin/cli ./cmd/cli/main.go
 
 FROM alpine AS build-info
 
@@ -40,6 +41,7 @@ WORKDIR /usr/src/
 
 COPY --from=build /etc/passwd_app /etc/passwd
 COPY --from=build /build/bin/app /usr/src/app
+COPY --from=build /build/bin/cli /usr/src/cli
 COPY --from=build-info /build/buildinfo /usr/src/buildinfo
 
 RUN mkdir /usr/src/data

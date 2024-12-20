@@ -12,12 +12,12 @@ SQLITE_FILEPATH=/data/db.sqlite3
 
 Start the docker container: 
 ```sh
-docker run ghcr.io/hiimjako/obsidian-live-syncinator-server -p 8080:8080 --env-file .env
+docker run --name obsidian-live-syncinator-server ghcr.io/hiimjako/obsidian-live-syncinator-server -p 8080:8080 --env-file .env
 ```
 
 ## Create a new Workspace
 ```sh
-go run ./cmd/cli -name "workspace-name" -pass "strong-pass" -db "./data/db.sqlite3"
+docker exec obsidian-live-syncinator-server ./cli -name "workspace-name" -pass "strong-pass" -db "./data/db.sqlite3"
 ```
 
 > [!WARNING]  
@@ -28,10 +28,10 @@ Docker compose example:
 ```sh 
 services:
   syncinator:
+    container_name: obsidian-live-syncinator-server 
     image: ghcr.io/hiimjako/obsidian-live-syncinator-server:main
     env_file: .env
     restart: always
-    container_name: syncinator
     volumes:
         - data:/usr/src/data
     ports:
